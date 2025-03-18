@@ -30,4 +30,31 @@ public class AuthenticateController : ControllerBase
         else
             return BadRequest(result);
     }
+
+    [HttpPost("Login")]
+    public async Task<IActionResult> Login([FromBody] LoginParams loginFrom)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+
+        var result = await _authenticateService.Login(loginFrom);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpPost("Refresh")]
+    public async Task<IActionResult> RefreshToken(string refreshToken)
+    {
+        var result = await _authenticateService.RefreshToken(refreshToken);
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
 }
