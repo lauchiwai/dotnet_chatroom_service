@@ -53,4 +53,111 @@ public class AuthenticateService : IAuthenticateService
 
         return result;
     }
+
+    public async Task<ResultDTO> Login([FromBody] LoginParams loginFrom)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var user = await _context.Authenticates.FirstOrDefaultAsync(u => u.UserName == loginFrom.UserName);
+            if (user == null)
+            {
+                result.IsSuccess = false;
+                result.Message = "User not found.";
+                return result;
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(loginFrom.Password, user.Pw))
+            {
+                result.IsSuccess = false;
+                result.Message = "Password is Invalid.";
+                return result;
+            }
+
+            var accessToken = GenerateJwtToken(loginFrom.UserName);
+            var refreshToken = GenerateRefreshToken();
+
+            // 更新資料庫中的 refreshToken
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            await _context.SaveChangesAsync();
+
+            result.Data = new TokenDto()
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+    public async Task<ResultDTO> RefreshToken(string refreshToken)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var user = await _context.Authenticates.SingleOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            if (user == null || user.RefreshToken == null || user.RefreshTokenExpiryTime == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            {
+                result.IsSuccess = false;
+                result.Message = "Invalid refresh token.";
+            }
+            else
+            {
+                // 生成新的 JWT token 和 refreshToken
+                var newAccessToken = GenerateJwtToken(user.UserName);
+                var newRefreshToken = GenerateRefreshToken();
+
+                // 更新 refreshToken
+                user.RefreshToken = newRefreshToken;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+                await _context.SaveChangesAsync();
+
+                result.Data = new TokenDto()
+                {
+                    AccessToken = newAccessToken,
+                    RefreshToken = newRefreshToken
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+        return result;
+    }
+
+    private string GenerateJwtToken(string userName)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes(_configuration["JwtConfig:SecretKey"]);
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.Name, userName)
+            }),
+            Expires = DateTime.UtcNow.AddMinutes(15),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
+    }
+
+    private string GenerateRefreshToken()
+    {
+        var randomNumber = new byte[32];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
+    }
 }
