@@ -69,13 +69,13 @@ builder.Services.AddSwaggerGen(c =>
 
 // services or helper 
 builder.Services.Scan(scan => scan
-    .FromAssembliesOf(typeof(AuthenticateService)) // ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½wï¿½{ï¿½Ç¶ï¿½
+    .FromAssembliesOf(typeof(AuthenticateService)) // ¥[¸ü«ü©wµ{§Ç¶°
     .AddClasses(classes => classes
         .Where(t => t.Name.EndsWith("Service") || t.Name.EndsWith("Helper"))
     )
-    .UsingRegistrationStrategy(RegistrationStrategy.Skip) // ï¿½×§Kï¿½ï¿½ï¿½Æµï¿½ï¿½U
-    .AsImplementedInterfaces() // ï¿½ï¿½ï¿½Uï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    .WithScopedLifetime()       // ï¿½Í©Rï¿½gï¿½ï¿½ï¿½ï¿½ Scoped
+    .UsingRegistrationStrategy(RegistrationStrategy.Skip) // Á×§K­«½Æµù¥U
+    .AsImplementedInterfaces() // µù¥U¬°¤¶­±
+    .WithScopedLifetime()       // ¥Í©R¶g´Á¬° Scoped
 );
 
 
