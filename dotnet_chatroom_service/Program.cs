@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Repositories.MyDbContext;
+using Scrutor;
 using Services.Services;
 using System.Text;
 
@@ -65,6 +66,19 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
+// services or helper 
+builder.Services.Scan(scan => scan
+    .FromAssembliesOf(typeof(AuthenticateService)) // �[�����w�{�Ƕ�
+    .AddClasses(classes => classes
+        .Where(t => t.Name.EndsWith("Service") || t.Name.EndsWith("Helper"))
+    )
+    .UsingRegistrationStrategy(RegistrationStrategy.Skip) // �קK���Ƶ��U
+    .AsImplementedInterfaces() // ���U������
+    .WithScopedLifetime()       // �ͩR�g���� Scoped
+);
+
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
