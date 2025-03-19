@@ -1,7 +1,6 @@
-﻿
-namespace Common.Dto;
+﻿namespace Common.ViewModels;
 
-public class TokenDto 
+public class TokenViewModel
 {
     public string AccessToken { get; set; }
 
