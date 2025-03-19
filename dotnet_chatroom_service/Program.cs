@@ -1,16 +1,43 @@
+ï»¿using Common.Helper.Implementation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Repositories.MyDbContext;
 using Scrutor;
-using Services.Services;
+using Services.Implementation;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+               .WithExposedHeaders("Authorization"); // å…è®¸ä¼ é€’Authorizationå¤´
+    });
+});
+
+builder.Services.Scan(scan => scan
+     .FromApplicationDependencies(assembly =>
+        assembly.FullName.StartsWith("Services") ||
+        assembly.FullName.StartsWith("Common") ||
+        assembly == typeof(Program).Assembly 
+    )
+    .AddClasses(classes => classes
+        .Where(t => t.Name.EndsWith("Service") || t.Name.EndsWith("Helper"))
+    )
+    .UsingRegistrationStrategy(RegistrationStrategy.Skip)
+    .AsImplementedInterfaces()
+    .WithScopedLifetime()
+);
 
 // db services 
 builder.Services.AddDbContext<MyDbContext>(options =>
@@ -18,11 +45,10 @@ options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectio
 
 // jwt services
 var jwtConfig = builder.Configuration.GetSection("JwtConfig");
-
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+	options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+	options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
@@ -31,64 +57,64 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig["SecretKey"])),
         ValidateIssuer = true,
-        ValidIssuer = jwtConfig["Issuer"],
+        ValidIssuer = jwtConfig["Issuer"], 
         ValidateAudience = true,
-        ValidAudience = jwtConfig["Audience"],
-        ValidateLifetime = true,
+        ValidAudience = jwtConfig["Audience"], 
+        ValidateLifetime = true
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"èªè­‰å¤±æ•—: {context.Exception.Message}");
+            return Task.CompletedTask;
+        }
     };
 });
 
 // swagger services 
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "DotNet Chatroom API", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
+	c.SwaggerDoc("v1", new OpenApiInfo { Title = "DotNet Chatroom API", Version = "v1" });
+	c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+	{
+		Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+		Name = "Authorization",
+		In = ParameterLocation.Header,
+		Type = SecuritySchemeType.ApiKey,
+		Scheme = "Bearer"
+	});
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
-        }
-    });
+	c.AddSecurityRequirement(new OpenApiSecurityRequirement
+	{
+		{
+			new OpenApiSecurityScheme
+			{
+				Reference = new OpenApiReference
+				{
+					Type = ReferenceType.SecurityScheme,
+					Id = "Bearer"
+				}
+			},
+			new string[] {}
+		}
+	});
 });
-
-// services or helper 
-builder.Services.Scan(scan => scan
-    .FromAssembliesOf(typeof(AuthenticateService)) // ¥[¸ü«ü©wµ{§Ç¶°
-    .AddClasses(classes => classes
-        .Where(t => t.Name.EndsWith("Service") || t.Name.EndsWith("Helper"))
-    )
-    .UsingRegistrationStrategy(RegistrationStrategy.Skip) // Á×§K­«½Æµù¥U
-    .AsImplementedInterfaces() // µù¥U¬°¤¶­±
-    .WithScopedLifetime()       // ¥Í©R¶g´Á¬° Scoped
-);
-
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+	app.UseSwagger();
+	app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
+app.UseCors("AllowAll"); // å¯ç”¨ CORS
 
+app.UseAuthentication(); // å¿…é¡»å…ˆäº Authorization
 app.UseAuthorization();
 
 app.MapControllers();
