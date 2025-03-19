@@ -26,4 +26,16 @@ public class ChatSessionController : ControllerBase
         else
             return BadRequest(result);
     }
+
+    [HttpGet("GetChatSessionList")]
+    [Authorize]
+    public async Task<IActionResult> GetChatSessionList()
+    {
+        var result = await _chatSessionService.GetChatSessionList();
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
 }
