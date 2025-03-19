@@ -1,6 +1,7 @@
 ﻿using Common.Dto;
 using Common.Models;
 using Common.Params;
+using Common.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -12,7 +13,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Services.Services;
+namespace Services.Implementation;
 
 public class AuthenticateService : IAuthenticateService
 {
@@ -74,7 +75,7 @@ public class AuthenticateService : IAuthenticateService
                 return result;
             }
 
-            var accessToken = GenerateJwtToken(loginFrom.UserName);
+            var accessToken = GenerateJwtToken(user.UserName, user.Id);
             var refreshToken = GenerateRefreshToken();
 
             // 更新資料庫中的 refreshToken
@@ -82,7 +83,7 @@ public class AuthenticateService : IAuthenticateService
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
             await _context.SaveChangesAsync();
 
-            result.Data = new TokenDto()
+            result.Data = new TokenViewModel()
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken
@@ -111,7 +112,7 @@ public class AuthenticateService : IAuthenticateService
             else
             {
                 // 生成新的 JWT token 和 refreshToken
-                var newAccessToken = GenerateJwtToken(user.UserName);
+                var newAccessToken = GenerateJwtToken(user.UserName, user.Id);
                 var newRefreshToken = GenerateRefreshToken();
 
                 // 更新 refreshToken
@@ -119,7 +120,7 @@ public class AuthenticateService : IAuthenticateService
                 user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
                 await _context.SaveChangesAsync();
 
-                result.Data = new TokenDto()
+                result.Data = new TokenViewModel()
                 {
                     AccessToken = newAccessToken,
                     RefreshToken = newRefreshToken
@@ -134,7 +135,7 @@ public class AuthenticateService : IAuthenticateService
         return result;
     }
 
-    private string GenerateJwtToken(string userName)
+    private string GenerateJwtToken(string userName, int userId)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_configuration["JwtConfig:SecretKey"]);
@@ -142,9 +143,12 @@ public class AuthenticateService : IAuthenticateService
         {
             Subject = new ClaimsIdentity(new Claim[]
             {
-                new Claim(ClaimTypes.Name, userName)
+                new Claim("UserName", userName),
+                new Claim("UserId", userId.ToString()),
             }),
-            Expires = DateTime.UtcNow.AddMinutes(15),
+            Expires = DateTime.UtcNow.AddMinutes(30),
+            Issuer = _configuration["JwtConfig:Issuer"], // 设置 Issuer
+            Audience = _configuration["JwtConfig:Audience"], // 设置 Audience
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);
