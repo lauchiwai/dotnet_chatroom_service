@@ -10,4 +10,10 @@ public interface IChatSessionService
     /// <param name="userTimeZoneId"></param>
     /// <returns></returns>
     public Task<ResultDTO> GenerateChatSession(string userTimeZoneId = "Asia/Hong_Kong");
+
+    /// <summary>
+    /// 獲取該用戶的所有聊天會話
+    /// </summary>
+    /// <returns></returns>
+    public Task<ResultDTO> GetChatSessionList();
 }

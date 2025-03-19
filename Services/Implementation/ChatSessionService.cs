@@ -55,4 +55,30 @@ public class ChatSessionService : IChatSessionService
         return result;
     }
 
+    public async Task<ResultDTO> GetChatSessionList()
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var chatSessionList = await _context.ChatSessions
+                .Where(a => a.UserId == userInfo.UserId)
+                .Select(a => new ChatSessionViewModel ()
+                {
+                    SessionId = a.SessionId,
+                    SessionName = a.SessionName ?? "",
+                })
+                .ToListAsync();
+
+            result.Data = chatSessionList;
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
 }
