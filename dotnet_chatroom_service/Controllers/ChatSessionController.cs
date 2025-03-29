@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Common.Params;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interfaces;
 
@@ -32,6 +33,29 @@ public class ChatSessionController : ControllerBase
     public async Task<IActionResult> GetChatSessionList()
     {
         var result = await _chatSessionService.GetChatSessionList();
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpGet("CheackChatHttpClientHealth")]
+    public async Task<IActionResult> CheackChatHttpClientHealth()
+    {
+        var result = await _chatSessionService.CheackChatHttpClientHealth();
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpGet("GetChatHistoryBySessionId/{sessionId}")]
+    [Authorize]
+    public async Task<IActionResult> GetChatHistoryBySessionId(string sessionId)
+    {
+        var result = await _chatSessionService.GetChatHistoryBySessionId(sessionId);
 
         if (result.IsSuccess)
             return Ok(result);

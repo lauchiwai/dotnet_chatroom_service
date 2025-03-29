@@ -1,4 +1,5 @@
 ﻿using Common.Dto;
+using Common.Params;
 
 namespace Services.Interfaces;
 
@@ -16,4 +17,24 @@ public interface IChatSessionService
     /// </summary>
     /// <returns></returns>
     public Task<ResultDTO> GetChatSessionList();
+
+    /// <summary>
+    /// 測試 heartbeat
+    /// </summary>
+    /// <returns></returns>
+    public Task<ResultDTO> CheackChatHttpClientHealth();
+
+    /// <summary>
+    /// 獲取對話歷史記錄
+    /// </summary>
+    /// <param name="sessionId"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> GetChatHistoryBySessionId(string sessionId);
+
+    /// <summary>
+    /// 聊天功能
+    /// </summary>
+    /// <param name="chatParams"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> Chat(ChatParams chatParams);
 }

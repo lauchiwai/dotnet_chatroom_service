@@ -3,10 +3,14 @@ using Common.Helper.Implementation;
 using Common.Helper.Interface;
 using Common.Models;
 using Common.ViewModels;
+using Common.Params;
 using Microsoft.EntityFrameworkCore;
+using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;
 using System.Globalization;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace Services.Implementation;
 
@@ -14,11 +18,13 @@ public class ChatSessionService : IChatSessionService
 {
     private readonly MyDbContext _context;
     private readonly IUserHelper _jwtHelper;
+    private readonly IChatServiceApiClient _chatHttpClient;
 
-    public ChatSessionService(MyDbContext context, IUserHelper jwtHelper)
+    public ChatSessionService(MyDbContext context, IUserHelper jwtHelper, IChatServiceApiClient chatHttpClient)
     {
         _context = context;
         _jwtHelper = jwtHelper;
+        _chatHttpClient = chatHttpClient;
     }
 
     public async Task<ResultDTO> GenerateChatSession(string userTimeZoneId = "Asia/Hong_Kong")
@@ -32,7 +38,7 @@ public class ChatSessionService : IChatSessionService
             var newChatSession = new ChatSession()
             {
                 UserId = userInfo.UserId,
-                SessionName = userLocalTime.ToString( "yyyy年MM月dd日HH時mm分", CultureInfo.InvariantCulture ),
+                SessionName = userLocalTime.ToString("yyyy年MM月dd日HH時mm分", CultureInfo.InvariantCulture),
                 UpdateTime = DateTime.UtcNow
             };
             _context.ChatSessions.Add(newChatSession);
@@ -63,7 +69,7 @@ public class ChatSessionService : IChatSessionService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var chatSessionList = await _context.ChatSessions
                 .Where(a => a.UserId == userInfo.UserId)
-                .Select(a => new ChatSessionViewModel ()
+                .Select(a => new ChatSessionViewModel()
                 {
                     SessionId = a.SessionId,
                     SessionName = a.SessionName ?? "",
@@ -79,6 +85,30 @@ public class ChatSessionService : IChatSessionService
         }
 
         return result;
+    }
+
+    public async Task<ResultDTO> CheackChatHttpClientHealth()
+    {
+        var response = await _chatHttpClient.GetAsync<ChatServiceHttpClientResultDto>("health");
+        return new ResultDTO()
+        {
+            IsSuccess = response.success,
+            Data = response.data,
+            Message = response.success ? response.message : null,
+            ErrorMessage = !response.success ? response.message : null,
+        };
+    }
+
+    public async Task<ResultDTO> GetChatHistoryBySessionId(string sessionId)
+    {
+        var response = await _chatHttpClient.GetAsync<ChatServiceHttpClientResultDto>($"Chat/getChatHistoryBySessionId/{sessionId}");
+        return new ResultDTO()
+        {
+            IsSuccess = response.success,
+            Data = response.data,
+            Message = response.success ? response.message : null,
+            ErrorMessage = !response.success ? response.message : null,
+        };
     }
 
 }
