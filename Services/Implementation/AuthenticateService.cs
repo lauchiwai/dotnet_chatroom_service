@@ -31,7 +31,7 @@ public class AuthenticateService : IAuthenticateService
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
-            if (await _context.Authenticates.AnyAsync(u => u.UserName == registerFrom.UserName))
+            if (await _context.Authenticates.AnyAsync(u => u.UserName == registerFrom.Username))
             {
                 result.IsSuccess = false;
                 result.ErrorMessage = "Username has already been registered";
@@ -40,7 +40,7 @@ public class AuthenticateService : IAuthenticateService
 
             var newUser = new Authenticate
             {
-                UserName = registerFrom.UserName,
+                UserName = registerFrom.Username,
                 Pw = BCrypt.Net.BCrypt.HashPassword(registerFrom.Password)
             };
 
@@ -60,7 +60,7 @@ public class AuthenticateService : IAuthenticateService
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
-            var user = await _context.Authenticates.FirstOrDefaultAsync(u => u.UserName == loginFrom.UserName);
+            var user = await _context.Authenticates.FirstOrDefaultAsync(u => u.UserName == loginFrom.Username);
             if (user == null)
             {
                 result.IsSuccess = false;
@@ -138,7 +138,7 @@ public class AuthenticateService : IAuthenticateService
     private string GenerateJwtToken(string userName, int userId)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_configuration["JwtConfig:SecretKey"]);
+        var key = Encoding.UTF8.GetBytes(_configuration["JwtConfig:SecretKey"]);
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new Claim[]
