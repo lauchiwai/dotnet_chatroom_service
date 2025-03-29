@@ -44,6 +44,17 @@ public class VectorService : IVectorService
         };
     }
 
+    public async Task<ResultDTO> UpsertVectorCollectionTexts(UpsertVectorCollectionParams upsertVectorCollectionParams)
+    {
+        var response = await _chatHttpClient.PostAsync<UpsertVectorCollectionParams, ChatServiceHttpClientResultDto>("Vector/collections/upsert", upsertVectorCollectionParams);
+        return new ResultDTO()
+        {
+            IsSuccess = response.success,
+            Data = response.data,
+            Message = response.success ? response.message : null,
+            ErrorMessage = !response.success ? response.message : null,
+        };
+    }
 
     public async Task<ResultDTO> GenerateVectorCollection(GenerateCollectionParams generateCollectionParams)
     {
@@ -56,5 +67,6 @@ public class VectorService : IVectorService
             ErrorMessage = !response.success ? response.message : null,
         };
     }
+
 
 }

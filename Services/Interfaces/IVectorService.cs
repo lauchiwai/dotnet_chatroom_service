@@ -11,6 +11,14 @@ public interface IVectorService
     /// <param name="generateCollectionParams"></param>
     /// <returns></returns>
     public Task<ResultDTO> GenerateVectorCollection(GenerateCollectionParams generateCollectionParams);
+
+    /// <summary>
+    /// 新增文本到 向量集合 
+    /// </summary>
+    /// <param name="upsertVectorCollectionParams"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> UpsertVectorCollectionTexts(UpsertVectorCollectionParams upsertVectorCollectionParams);
+
     /// <summary>
     /// 從向量集合 搜尋
     /// </summary>

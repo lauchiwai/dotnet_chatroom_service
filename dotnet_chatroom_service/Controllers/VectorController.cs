@@ -41,6 +41,18 @@ public class VectorController : ControllerBase
             return BadRequest(result);
     }
 
+    [HttpPost("UpsertVectorCollectionTexts")]
+    [Authorize]
+    public async Task<IActionResult> UpsertVectorCollectionTexts(UpsertVectorCollectionParams upsertVectorCollectionParams)
+    {
+        var result = await _vectorService.UpsertVectorCollectionTexts(upsertVectorCollectionParams);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
     [HttpPost("GenerateVectorCollection")]
     [Authorize]
     public async Task<IActionResult> GenerateVectorCollection(GenerateCollectionParams generateCollectionParams)
