@@ -62,4 +62,16 @@ public class ChatSessionController : ControllerBase
         else
             return BadRequest(result);
     }
+
+    [HttpPost("Chat")]
+    [Authorize]
+    public async Task<IActionResult> Chat([FromBody] ChatParams chatParams)
+    {
+        var result = await _chatSessionService.Chat(chatParams);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
 }
