@@ -29,4 +29,15 @@ public class VectorController : ControllerBase
             return BadRequest(result);
     }
 
+    [HttpPost("VectorSemanticSearch")]
+    [Authorize]
+    public async Task<IActionResult> VectorSemanticSearch(VectorSearchParams vectorSearchParams)
+    {
+        var result = await _vectorService.VectorSemanticSearch(vectorSearchParams);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
 }
