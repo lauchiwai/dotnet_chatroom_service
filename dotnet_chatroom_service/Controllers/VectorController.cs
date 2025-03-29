@@ -40,4 +40,16 @@ public class VectorController : ControllerBase
         else
             return BadRequest(result);
     }
+
+    [HttpPost("GenerateVectorCollection")]
+    [Authorize]
+    public async Task<IActionResult> GenerateVectorCollection(GenerateCollectionParams generateCollectionParams)
+    {
+        var result = await _vectorService.GenerateVectorCollection(generateCollectionParams);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
 }

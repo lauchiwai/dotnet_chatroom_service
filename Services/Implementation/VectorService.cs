@@ -44,4 +44,17 @@ public class VectorService : IVectorService
         };
     }
 
+
+    public async Task<ResultDTO> GenerateVectorCollection(GenerateCollectionParams generateCollectionParams)
+    {
+        var response = await _chatHttpClient.PostAsync<GenerateCollectionParams, ChatServiceHttpClientResultDto>("Vector/generate_collections", generateCollectionParams);
+        return new ResultDTO()
+        {
+            IsSuccess = response.success,
+            Data = response.data,
+            Message = response.success ? response.message : null,
+            ErrorMessage = !response.success ? response.message : null,
+        };
+    }
+
 }

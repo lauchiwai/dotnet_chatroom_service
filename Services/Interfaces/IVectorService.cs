@@ -6,6 +6,12 @@ namespace Services.Interfaces;
 public interface IVectorService
 {
     /// <summary>
+    /// 創建 向量集合
+    /// </summary>
+    /// <param name="generateCollectionParams"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> GenerateVectorCollection(GenerateCollectionParams generateCollectionParams);
+    /// <summary>
     /// 從向量集合 搜尋
     /// </summary>
     /// <param name="vectorSearchParams"></param>
