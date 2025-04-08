@@ -9,6 +9,7 @@ public interface IChatServiceApiClient
 {
     Task<T> GetAsync<T>(string endpoint);
     Task<TResponse> PostAsync<TRequest, TResponse>(string endpoint, TRequest request);
+    Task<TResponse> DeleteAsync<TResponse>(string endpoint); 
 }
 
 public class ChatServiceApiClient : IChatServiceApiClient
@@ -39,20 +40,6 @@ public class ChatServiceApiClient : IChatServiceApiClient
     {
         var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
         AddAuthorizationHeader(request);
-        //Console.WriteLine("///////////////////////////");
-        //var requestDetails = new StringBuilder();
-        //requestDetails.AppendLine($"Method: {request.Method}");
-        //requestDetails.AppendLine($"Request URI: {request.RequestUri}");
-
-        //requestDetails.AppendLine("Headers:");
-        //foreach (var header in request.Headers)
-        //{
-        //    requestDetails.AppendLine($"  {header.Key}: {string.Join(", ", header.Value)}");
-        //}
-
-        //Console.WriteLine(requestDetails.ToString());
-        //Console.WriteLine("///////////////////////////");
-
         var response = await _httpClient.SendAsync(request);
         await EnsureSuccessStatusCode(response);
         return await DeserializeResponse<T>(response);
@@ -71,12 +58,18 @@ public class ChatServiceApiClient : IChatServiceApiClient
         return await DeserializeResponse<TResponse>(response);
     }
 
+    public async Task<TResponse> DeleteAsync<TResponse>(string endpoint)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, endpoint);
+        AddAuthorizationHeader(request);
+        var response = await _httpClient.SendAsync(request);
+        await EnsureSuccessStatusCode(response);
+        return await DeserializeResponse<TResponse>(response);
+    }
+
     private void AddAuthorizationHeader(HttpRequestMessage request)
     {
         var token = _tokenProvider.GetToken();
-        //Console.WriteLine("///////////////////////////");
-        //Console.WriteLine("token : " + token);
-        //Console.WriteLine("///////////////////////////");
         if (!string.IsNullOrEmpty(token))
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

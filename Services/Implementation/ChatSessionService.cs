@@ -2,18 +2,15 @@
 using Common.Helper.Implementation;
 using Common.Helper.Interface;
 using Common.Models;
-using Common.ViewModels;
 using Common.Params;
+using Common.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;
 using System.Globalization;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 
 namespace Services.Implementation;
-
 public class ChatSessionService : IChatSessionService
 {
     private readonly MyDbContext _context;
@@ -98,8 +95,49 @@ public class ChatSessionService : IChatSessionService
         };
     }
 
+    public async Task<ResultDTO> GetChatSessionBySessionId(string sessionId)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var chatSession = await _context.ChatSessions
+                .Where(a => a.SessionId.ToString() == sessionId)
+                .FirstAsync();
+
+            if (chatSession == null)
+            {
+                result.IsSuccess = false;
+                result.Code = 404;
+                result.Message = "not found";
+            }
+
+            if (chatSession!.UserId != userInfo.UserId)
+            {
+                result.IsSuccess = false;
+                result.Code = 403;
+                result.Message = "You do not have permission to access this chat session";
+            }
+
+            result.Data = chatSession;
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
     public async Task<ResultDTO> GetChatHistoryBySessionId(string sessionId)
     {
+        var sessionResult = await GetChatSessionBySessionId(sessionId);
+        if (!sessionResult.IsSuccess)
+        {
+            return sessionResult;
+        }
+
         var response = await _chatHttpClient.GetAsync<ChatServiceHttpClientResultDto>($"Chat/getChatHistoryBySessionId/{sessionId}");
         return new ResultDTO()
         {
@@ -107,6 +145,68 @@ public class ChatSessionService : IChatSessionService
             Data = response.data,
             Message = response.message
         };
+    }
+
+    public async Task<ResultDTO> DeleteChatData(string sessionId)
+    {
+        var getSessionResult = await GetChatSessionBySessionId(sessionId);
+        if (!getSessionResult.IsSuccess)
+        {
+            return getSessionResult;
+        }
+
+        var deleteChatHistoryResult = await DeleteChatHistoryBySessionId(sessionId);
+        if (!deleteChatHistoryResult.IsSuccess)
+        {
+            return deleteChatHistoryResult;
+        }
+
+        var sessionEntity = getSessionResult.Data as ChatSession;
+        var deleteChatSessionResult = await DeleteChatSessionByEntity(sessionEntity);
+        if (!deleteChatSessionResult.IsSuccess)
+        {
+            return deleteChatSessionResult;
+        }
+
+        return new ResultDTO() { 
+            IsSuccess = true,
+            Message = "delete successs" 
+        };
+    }
+
+    public async Task<ResultDTO> DeleteChatHistoryBySessionId(string sessionId)
+    {
+        var response = await _chatHttpClient.DeleteAsync<ChatServiceHttpClientResultDto>($"Chat/deleteChatHistoryBySessionId/{sessionId}");
+        return new ResultDTO()
+        {
+            IsSuccess = response.success,
+            Data = response.data,
+            Message = response.message,
+        };
+    }
+
+    public async Task<ResultDTO> DeleteChatSessionByEntity(ChatSession chatSession)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            if (chatSession == null)
+            {
+                result.IsSuccess = false;
+                result.Message = "chatSession is ArgumentNullException";
+                return result;
+            }
+
+            _context.ChatSessions.Remove(chatSession);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
     }
 
     public async Task<ResultDTO> Chat(ChatParams chatParams)

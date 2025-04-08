@@ -1,4 +1,5 @@
-﻿using Common.Params;
+﻿using Common.Dto;
+using Common.Params;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interfaces;
@@ -56,6 +57,18 @@ public class ChatSessionController : ControllerBase
     public async Task<IActionResult> GetChatHistoryBySessionId(string sessionId)
     {
         var result = await _chatSessionService.GetChatHistoryBySessionId(sessionId);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpDelete("DeleteChatData/{sessionId}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteChatData(string sessionId)
+    {
+        var result = await _chatSessionService.DeleteChatData(sessionId);
 
         if (result.IsSuccess)
             return Ok(result);
