@@ -94,8 +94,7 @@ public class ChatSessionService : IChatSessionService
         {
             IsSuccess = response.success,
             Data = response.data,
-            Message = response.success ? response.message : null,
-            ErrorMessage = !response.success ? response.message : null,
+            Message = response.message
         };
     }
 
@@ -106,8 +105,7 @@ public class ChatSessionService : IChatSessionService
         {
             IsSuccess = response.success,
             Data = response.data,
-            Message = response.success ? response.message : null,
-            ErrorMessage = !response.success ? response.message : null,
+            Message = response.message
         };
     }
 
@@ -118,8 +116,7 @@ public class ChatSessionService : IChatSessionService
         {
             IsSuccess = response.success,
             Data = response.data,
-            Message = response.success ? response.message : null,
-            ErrorMessage = !response.success ? response.message : null,
+            Message = response.message
         };
     }
 }

@@ -7,6 +7,11 @@ public class ResultDTO
     public bool IsSuccess { get; set; }
 
     /// <summary>
+    /// 狀態碼
+    /// </summary>
+    public int Code { get; set; }
+
+    /// <summary>
     /// 操作結果的訊息
     /// </summary>
     public string Message { get; set; }
@@ -15,11 +20,6 @@ public class ResultDTO
     /// 操作結果的資料
     /// </summary>
     public object Data { get; set; }
-
-    /// <summary>
-    /// 錯誤訊息
-    /// </summary>
-    public string ErrorMessage { get; set; }
 
     /// <summary>
     /// 預設建構函式
@@ -32,12 +32,11 @@ public class ResultDTO
     /// <param name="isSuccess">是否成功</param>
     /// <param name="message">訊息</param>
     /// <param name="data">資料</param>
-    /// <param name="errorMessage">錯誤訊息</param>
-    public ResultDTO(bool isSuccess, string message, object data = null, string errorMessage = null)
+    public ResultDTO(bool isSuccess,int code = 200, string message = "", object data = null)
     {
         IsSuccess = isSuccess;
+        Code = code;
         Message = message;
         Data = data;
-        ErrorMessage = errorMessage;
     }
 }

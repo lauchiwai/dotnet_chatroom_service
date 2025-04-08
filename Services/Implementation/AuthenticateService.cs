@@ -34,7 +34,7 @@ public class AuthenticateService : IAuthenticateService
             if (await _context.Authenticates.AnyAsync(u => u.UserName == registerFrom.Username))
             {
                 result.IsSuccess = false;
-                result.ErrorMessage = "Username has already been registered";
+                result.Message = "Username has already been registered";
                 return result;
             }
 
