@@ -9,7 +9,7 @@ public class ResultDTO
     /// <summary>
     /// 狀態碼
     /// </summary>
-    public int Code { get; set; }
+    public int Code { get; set; } = 200;
 
     /// <summary>
     /// 操作結果的訊息
