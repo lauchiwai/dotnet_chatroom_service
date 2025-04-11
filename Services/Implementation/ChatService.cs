@@ -22,7 +22,7 @@ public class ChatService : IChatService
     private readonly IChatServiceApiClient _chatHttpClient;
     private readonly IChatServiceStreamClient _chatServiceStreamClient;
 
-    public ChatService(MyDbContext context, IUserHelper jwtHelper, IChatServiceApiClient chatHttpClient)
+    public ChatService(MyDbContext context, IUserHelper jwtHelper, IChatServiceApiClient chatHttpClient, IChatServiceStreamClient chatServiceStreamClient)
     {
         _context = context;
         _jwtHelper = jwtHelper;

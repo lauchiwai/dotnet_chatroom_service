@@ -98,7 +98,7 @@ public class ChatController : ControllerBase
         {
             try
             {
-                await _chatSessionService.ChatStream( outputStream, chatParams, cancellationToken );
+                await _chatService.ChatStream( outputStream, chatParams, cancellationToken );
             }
             finally
             {
