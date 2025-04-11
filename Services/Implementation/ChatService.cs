@@ -78,6 +78,7 @@ public class ChatService : IChatService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var chatSessionList = await _chatSessionRepository.GetQueryable()
                 .Where(a => a.UserId == userInfo.UserId)
+                .OrderByDescending(x => x.UpdateTime)
                 .Select(a => new ChatSessionViewModel()
                 {
                     SessionId = a.SessionId,
@@ -225,6 +226,36 @@ public class ChatService : IChatService
             Data = response.data,
             Message = response.message
         };
+    }
+
+    public async Task<ResultDTO> RefreshChatSessionTime(string sessionId)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var chatSession = await _chatSessionRepository.GetQueryable()
+               .Where(a => a.SessionId.ToString() == sessionId)
+               .FirstOrDefaultAsync();
+
+            if(chatSession == null)
+            {
+                result.IsSuccess = false;
+                result.Code = 404;
+                return result;
+            }
+
+            chatSession.UpdateTime = DateTime.UtcNow;
+
+            _chatSessionRepository.Update(chatSession);
+            await _chatSessionRepository.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
     }
 
     public async Task ChatStream(Stream outputStream, ChatParams chatParams, CancellationToken cancellationToken)

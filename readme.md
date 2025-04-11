@@ -16,8 +16,6 @@ git commit -m "Initial commit for .NET 8 project"
 
 git remote add origin https://github.com/yourusername/my-dotnet-project.git
 
-
-
 # docker command
 
 ## 清理构建缓存

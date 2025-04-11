@@ -76,6 +76,18 @@ public class ChatController : ControllerBase
             return BadRequest(result);
     }
 
+    [HttpPost("RefreshChatSessionTime")]
+    [Authorize]
+    public async Task<IActionResult> RefreshChatSessionTime(string sessionId)
+    {
+        var result = await _chatService.RefreshChatSessionTime(sessionId);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
     [HttpPost("Chat")]
     [Authorize]
     public async Task<IActionResult> Chat([FromBody] ChatParams chatParams)

@@ -32,6 +32,13 @@ public interface IChatService
     public Task<ResultDTO> GetChatHistoryBySessionId(string sessionId);
 
     /// <summary>
+    /// 更新上一次使用這個聊天室的時間
+    /// </summary>
+    /// <param name="sessionId"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> RefreshChatSessionTime(string sessionId);
+
+    /// <summary>
     /// 刪除對話
     /// </summary>
     /// <param name="sessionId"></param>
