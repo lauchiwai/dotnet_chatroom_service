@@ -19,6 +19,7 @@ public class StreamedResult : IActionResult
         response.ContentType = _contentType;
         response.Headers.CacheControl = "no-cache";
         response.Headers.Connection = "keep-alive";
+        response.Headers.XContentTypeOptions = "no";
 
         await _streamWriter(response.Body, context.HttpContext.RequestAborted);
     }
