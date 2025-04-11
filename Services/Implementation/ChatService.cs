@@ -5,14 +5,12 @@ using Common.Models;
 using Common.Params;
 using Common.ViewModels;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Asn1.Crmf;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;
 using System.Globalization;
-using System.Net;
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace Services.Implementation;
 public class ChatService : IChatService
@@ -21,13 +19,20 @@ public class ChatService : IChatService
     private readonly IUserHelper _jwtHelper;
     private readonly IChatServiceApiClient _chatHttpClient;
     private readonly IChatServiceStreamClient _chatServiceStreamClient;
+    private readonly IRepository<ChatSession> _chatSessionRepository;
 
-    public ChatService(MyDbContext context, IUserHelper jwtHelper, IChatServiceApiClient chatHttpClient, IChatServiceStreamClient chatServiceStreamClient)
+    public ChatService(
+        MyDbContext context,
+        IUserHelper jwtHelper,
+        IChatServiceApiClient chatHttpClient,
+        IChatServiceStreamClient chatServiceStreamClient,
+         IRepository<ChatSession> chatSessionRepository)
     {
         _context = context;
         _jwtHelper = jwtHelper;
         _chatHttpClient = chatHttpClient;
         _chatServiceStreamClient = chatServiceStreamClient;
+        _chatSessionRepository = chatSessionRepository;
     }
 
     public async Task<ResultDTO> GenerateChatSession(string userTimeZoneId = "Asia/Hong_Kong")
@@ -44,8 +49,9 @@ public class ChatService : IChatService
                 SessionName = userLocalTime.ToString("yyyy年MM月dd日HH時mm分", CultureInfo.InvariantCulture),
                 UpdateTime = DateTime.UtcNow
             };
-            _context.ChatSessions.Add(newChatSession);
-            await _context.SaveChangesAsync();
+
+            await _chatSessionRepository.AddAsync(newChatSession);
+            await _chatSessionRepository.SaveChangesAsync();
 
             var chatSessionViewModel = new ChatSessionViewModel()
             {
@@ -70,14 +76,13 @@ public class ChatService : IChatService
         try
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
-            var chatSessionList = await _context.ChatSessions
+            var chatSessionList = await _chatSessionRepository.GetQueryable()
                 .Where(a => a.UserId == userInfo.UserId)
                 .Select(a => new ChatSessionViewModel()
                 {
                     SessionId = a.SessionId,
                     SessionName = a.SessionName ?? "",
-                })
-                .ToListAsync();
+                }).ToListAsync();
 
             result.Data = chatSessionList;
         }
@@ -107,9 +112,9 @@ public class ChatService : IChatService
         try
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
-            var chatSession = await _context.ChatSessions
-                .Where(a => a.SessionId.ToString() == sessionId)
-                .FirstOrDefaultAsync();
+
+            var chatSession = await _chatSessionRepository.GetQueryable()
+               .FirstOrDefaultAsync(a => a.SessionId.ToString() == sessionId);
 
             if (chatSession == null)
             {
@@ -196,12 +201,11 @@ public class ChatService : IChatService
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
-            var chatSession = await _context.ChatSessions
-              .Where(a => a.SessionId.ToString() == sessionId)
-              .FirstAsync();
+            var chatSession = await _chatSessionRepository.GetQueryable()
+               .FirstAsync(a => a.SessionId.ToString() == sessionId);
 
-            _context.ChatSessions.Remove(chatSession);
-            await _context.SaveChangesAsync();
+            _chatSessionRepository.Delete(chatSession);
+            await _chatSessionRepository.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -223,7 +227,7 @@ public class ChatService : IChatService
         };
     }
 
-    public async Task ChatStream( Stream outputStream, ChatParams chatParams, CancellationToken cancellationToken)
+    public async Task ChatStream(Stream outputStream, ChatParams chatParams, CancellationToken cancellationToken)
     {
         try
         {

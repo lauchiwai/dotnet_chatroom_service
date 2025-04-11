@@ -9,14 +9,10 @@ namespace Services.Implementation;
 
 public class VectorService : IVectorService
 {
-    private readonly MyDbContext _context;
-    private readonly IUserHelper _jwtHelper;
     private readonly IChatServiceApiClient _chatHttpClient;
 
     public VectorService(MyDbContext context, IUserHelper jwtHelper, IChatServiceApiClient chatHttpClient)
     {
-        _context = context;
-        _jwtHelper = jwtHelper;
         _chatHttpClient = chatHttpClient;
     }
 

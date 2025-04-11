@@ -1,7 +1,6 @@
 ﻿using Common.Params;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Services.Implementation;
 using Services.Interfaces;
 
 namespace dotnet_chatroom_service.Controllers;

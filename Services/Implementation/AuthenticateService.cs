@@ -19,11 +19,13 @@ public class AuthenticateService : IAuthenticateService
 {
     private readonly IConfiguration _configuration;
     private readonly MyDbContext _context;
+    private readonly IRepository<Authenticate> _authRepository; 
 
-    public AuthenticateService(IConfiguration configuration, MyDbContext context)
+    public AuthenticateService(IConfiguration configuration, MyDbContext context, IRepository<Authenticate> authRepository)
     {
         _configuration = configuration;
         _context = context;
+        _authRepository = authRepository;
     }
 
     public async Task<ResultDTO> Register([FromBody] RegisterParams registerFrom)
@@ -31,7 +33,7 @@ public class AuthenticateService : IAuthenticateService
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
-            if (await _context.Authenticates.AnyAsync(u => u.UserName == registerFrom.Username))
+            if (await _authRepository.ExistsAsync(u => u.UserName == registerFrom.Username))
             {
                 result.IsSuccess = false;
                 result.Message = "Username has already been registered";
@@ -44,7 +46,8 @@ public class AuthenticateService : IAuthenticateService
                 Pw = BCrypt.Net.BCrypt.HashPassword(registerFrom.Password)
             };
 
-            _context.Authenticates.Add(newUser);
+            await _authRepository.AddAsync(newUser);
+            await _authRepository.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -60,7 +63,9 @@ public class AuthenticateService : IAuthenticateService
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
-            var user = await _context.Authenticates.FirstOrDefaultAsync(u => u.UserName == loginFrom.Username);
+            var user = await _authRepository.GetQueryable()
+                .FirstOrDefaultAsync(u => u.UserName == loginFrom.Username);
+
             if (user == null)
             {
                 result.IsSuccess = false;
@@ -80,7 +85,9 @@ public class AuthenticateService : IAuthenticateService
 
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            await _context.SaveChangesAsync();
+
+            _authRepository.Update(user);
+            await _authRepository.SaveChangesAsync();
 
             result.Data = new TokenViewModel()
             {
@@ -102,7 +109,9 @@ public class AuthenticateService : IAuthenticateService
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
-            var user = await _context.Authenticates.SingleOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            var user = await _authRepository.GetQueryable()
+               .SingleOrDefaultAsync(u => u.RefreshToken == refreshToken);
+
             if (user == null || user.RefreshToken == null || user.RefreshTokenExpiryTime == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
             {
                 result.IsSuccess = false;
@@ -115,7 +124,9 @@ public class AuthenticateService : IAuthenticateService
 
                 user.RefreshToken = newRefreshToken;
                 user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-                await _context.SaveChangesAsync();
+
+                _authRepository.Update(user);
+                await _authRepository.SaveChangesAsync();
 
                 result.Data = new TokenViewModel()
                 {
@@ -144,8 +155,8 @@ public class AuthenticateService : IAuthenticateService
                 new Claim("UserId", userId.ToString()),
             }),
             Expires = DateTime.UtcNow.AddMinutes(30),
-            Issuer = _configuration["JwtConfig:Issuer"], 
-            Audience = _configuration["JwtConfig:Audience"], 
+            Issuer = _configuration["JwtConfig:Issuer"],
+            Audience = _configuration["JwtConfig:Audience"],
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);

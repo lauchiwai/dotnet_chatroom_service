@@ -2,9 +2,7 @@
 using Common.Params;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Org.BouncyCastle.Asn1.Crmf;
 using Services.Interfaces;
-using System.Text;
 
 namespace dotnet_chatroom_service.Controllers;
 
@@ -98,7 +96,7 @@ public class ChatController : ControllerBase
         {
             try
             {
-                await _chatService.ChatStream( outputStream, chatParams, cancellationToken );
+                await _chatService.ChatStream(outputStream, chatParams, cancellationToken);
             }
             finally
             {

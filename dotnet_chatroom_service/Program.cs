@@ -7,6 +7,7 @@ using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Scrutor;
 using System.Net.Http.Headers;
+using System;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -63,6 +64,9 @@ builder.Services.Scan(scan => scan
 // db services 
 builder.Services.AddDbContext<MyDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// db repository 
+builder.Services.AddScoped(typeof(IRepository<>), typeof(MyRepository<>));
 
 // jwt services
 var jwtConfig = builder.Configuration.GetSection("JwtConfig");
