@@ -78,7 +78,6 @@ public class AuthenticateService : IAuthenticateService
             var accessToken = GenerateJwtToken(user.UserName, user.Id);
             var refreshToken = GenerateRefreshToken();
 
-            // 更新資料庫中的 refreshToken
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
             await _context.SaveChangesAsync();
@@ -111,11 +110,9 @@ public class AuthenticateService : IAuthenticateService
             }
             else
             {
-                // 生成新的 JWT token 和 refreshToken
                 var newAccessToken = GenerateJwtToken(user.UserName, user.Id);
                 var newRefreshToken = GenerateRefreshToken();
 
-                // 更新 refreshToken
                 user.RefreshToken = newRefreshToken;
                 user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
                 await _context.SaveChangesAsync();
@@ -147,8 +144,8 @@ public class AuthenticateService : IAuthenticateService
                 new Claim("UserId", userId.ToString()),
             }),
             Expires = DateTime.UtcNow.AddMinutes(30),
-            Issuer = _configuration["JwtConfig:Issuer"], // 设置 Issuer
-            Audience = _configuration["JwtConfig:Audience"], // 设置 Audience
+            Issuer = _configuration["JwtConfig:Issuer"], 
+            Audience = _configuration["JwtConfig:Audience"], 
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);

@@ -10,20 +10,20 @@ namespace dotnet_chatroom_service.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class ChatSessionController : ControllerBase
+public class ChatController : ControllerBase
 {
-    private readonly IChatSessionService _chatSessionService;
+    private readonly IChatService _chatService;
 
-    public ChatSessionController(IChatSessionService chatSessionService)
+    public ChatController(IChatService chatService)
     {
-        _chatSessionService = chatSessionService;
+        _chatService = chatService;
     }
 
     [HttpPost("GenerateChatSession")]
     [Authorize]
     public async Task<IActionResult> GenerateChatSession(string userTimeZoneId = "Asia/Hong_Kong")
     {
-        var result = await _chatSessionService.GenerateChatSession(userTimeZoneId);
+        var result = await _chatService.GenerateChatSession(userTimeZoneId);
 
         if (result.IsSuccess)
             return Ok(result);
@@ -35,7 +35,7 @@ public class ChatSessionController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetChatSessionList()
     {
-        var result = await _chatSessionService.GetChatSessionList();
+        var result = await _chatService.GetChatSessionList();
 
         if (result.IsSuccess)
             return Ok(result);
@@ -46,7 +46,7 @@ public class ChatSessionController : ControllerBase
     [HttpGet("CheackChatHttpClientHealth")]
     public async Task<IActionResult> CheackChatHttpClientHealth()
     {
-        var result = await _chatSessionService.CheackChatHttpClientHealth();
+        var result = await _chatService.CheackChatHttpClientHealth();
 
         if (result.IsSuccess)
             return Ok(result);
@@ -58,7 +58,7 @@ public class ChatSessionController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetChatHistoryBySessionId(string sessionId)
     {
-        var result = await _chatSessionService.GetChatHistoryBySessionId(sessionId);
+        var result = await _chatService.GetChatHistoryBySessionId(sessionId);
 
         if (result.IsSuccess)
             return Ok(result);
@@ -70,7 +70,7 @@ public class ChatSessionController : ControllerBase
     [Authorize]
     public async Task<IActionResult> DeleteChatData(string sessionId)
     {
-        var result = await _chatSessionService.DeleteChatData(sessionId);
+        var result = await _chatService.DeleteChatData(sessionId);
 
         if (result.IsSuccess)
             return Ok(result);
@@ -82,7 +82,7 @@ public class ChatSessionController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Chat([FromBody] ChatParams chatParams)
     {
-        var result = await _chatSessionService.Chat(chatParams);
+        var result = await _chatService.Chat(chatParams);
 
         if (result.IsSuccess)
             return Ok(result);

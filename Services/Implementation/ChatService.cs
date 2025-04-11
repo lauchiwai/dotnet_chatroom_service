@@ -15,14 +15,14 @@ using System.Text.Json;
 using System.Text;
 
 namespace Services.Implementation;
-public class ChatSessionService : IChatSessionService
+public class ChatService : IChatService
 {
     private readonly MyDbContext _context;
     private readonly IUserHelper _jwtHelper;
     private readonly IChatServiceApiClient _chatHttpClient;
     private readonly IChatServiceStreamClient _chatServiceStreamClient;
 
-    public ChatSessionService(MyDbContext context, IUserHelper jwtHelper, IChatServiceApiClient chatHttpClient)
+    public ChatService(MyDbContext context, IUserHelper jwtHelper, IChatServiceApiClient chatHttpClient)
     {
         _context = context;
         _jwtHelper = jwtHelper;

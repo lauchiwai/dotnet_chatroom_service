@@ -3,7 +3,7 @@ using Common.Params;
 
 namespace Services.Interfaces;
 
-public interface IChatSessionService
+public interface IChatService
 {
     /// <summary>
     /// 創建聊天會話
