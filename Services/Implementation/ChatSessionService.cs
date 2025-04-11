@@ -5,10 +5,14 @@ using Common.Models;
 using Common.Params;
 using Common.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Crmf;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;
 using System.Globalization;
+using System.Net;
+using System.Text.Json;
+using System.Text;
 
 namespace Services.Implementation;
 public class ChatSessionService : IChatSessionService
@@ -16,12 +20,14 @@ public class ChatSessionService : IChatSessionService
     private readonly MyDbContext _context;
     private readonly IUserHelper _jwtHelper;
     private readonly IChatServiceApiClient _chatHttpClient;
+    private readonly IChatServiceStreamClient _chatServiceStreamClient;
 
     public ChatSessionService(MyDbContext context, IUserHelper jwtHelper, IChatServiceApiClient chatHttpClient)
     {
         _context = context;
         _jwtHelper = jwtHelper;
         _chatHttpClient = chatHttpClient;
+        _chatServiceStreamClient = chatServiceStreamClient;
     }
 
     public async Task<ResultDTO> GenerateChatSession(string userTimeZoneId = "Asia/Hong_Kong")
@@ -95,7 +101,7 @@ public class ChatSessionService : IChatSessionService
         };
     }
 
-    public async Task<ResultDTO> GetChatSessionBySessionId(string sessionId)
+    public async Task<ResultDTO> ValidateChatPermission(string sessionId)
     {
         var result = new ResultDTO() { IsSuccess = true };
         try
@@ -103,13 +109,14 @@ public class ChatSessionService : IChatSessionService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var chatSession = await _context.ChatSessions
                 .Where(a => a.SessionId.ToString() == sessionId)
-                .FirstAsync();
+                .FirstOrDefaultAsync();
 
             if (chatSession == null)
             {
                 result.IsSuccess = false;
                 result.Code = 404;
                 result.Message = "not found";
+                return result;
             }
 
             if (chatSession!.UserId != userInfo.UserId)
@@ -117,9 +124,8 @@ public class ChatSessionService : IChatSessionService
                 result.IsSuccess = false;
                 result.Code = 403;
                 result.Message = "You do not have permission to access this chat session";
+                return result;
             }
-
-            result.Data = chatSession;
         }
         catch (Exception ex)
         {
@@ -132,10 +138,10 @@ public class ChatSessionService : IChatSessionService
 
     public async Task<ResultDTO> GetChatHistoryBySessionId(string sessionId)
     {
-        var sessionResult = await GetChatSessionBySessionId(sessionId);
-        if (!sessionResult.IsSuccess)
+        var validateResult = await ValidateChatPermission(sessionId);
+        if (!validateResult.IsSuccess)
         {
-            return sessionResult;
+            return validateResult;
         }
 
         var response = await _chatHttpClient.GetAsync<ChatServiceHttpClientResultDto>($"Chat/getChatHistoryBySessionId/{sessionId}");
@@ -149,10 +155,10 @@ public class ChatSessionService : IChatSessionService
 
     public async Task<ResultDTO> DeleteChatData(string sessionId)
     {
-        var getSessionResult = await GetChatSessionBySessionId(sessionId);
-        if (!getSessionResult.IsSuccess)
+        var validateResult = await ValidateChatPermission(sessionId);
+        if (!validateResult.IsSuccess)
         {
-            return getSessionResult;
+            return validateResult;
         }
 
         var deleteChatHistoryResult = await DeleteChatHistoryBySessionId(sessionId);
@@ -161,16 +167,16 @@ public class ChatSessionService : IChatSessionService
             return deleteChatHistoryResult;
         }
 
-        var sessionEntity = getSessionResult.Data as ChatSession;
-        var deleteChatSessionResult = await DeleteChatSessionByEntity(sessionEntity);
+        var deleteChatSessionResult = await DeleteChatSessionBySessionId(sessionId);
         if (!deleteChatSessionResult.IsSuccess)
         {
             return deleteChatSessionResult;
         }
 
-        return new ResultDTO() { 
+        return new ResultDTO()
+        {
             IsSuccess = true,
-            Message = "delete successs" 
+            Message = "delete successs"
         };
     }
 
@@ -185,17 +191,14 @@ public class ChatSessionService : IChatSessionService
         };
     }
 
-    public async Task<ResultDTO> DeleteChatSessionByEntity(ChatSession chatSession)
+    public async Task<ResultDTO> DeleteChatSessionBySessionId(string sessionId)
     {
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
-            if (chatSession == null)
-            {
-                result.IsSuccess = false;
-                result.Message = "chatSession is ArgumentNullException";
-                return result;
-            }
+            var chatSession = await _context.ChatSessions
+              .Where(a => a.SessionId.ToString() == sessionId)
+              .FirstAsync();
 
             _context.ChatSessions.Remove(chatSession);
             await _context.SaveChangesAsync();
@@ -218,5 +221,57 @@ public class ChatSessionService : IChatSessionService
             Data = response.data,
             Message = response.message
         };
+    }
+
+    public async Task ChatStream( Stream outputStream, ChatParams chatParams, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var validationResult = await ValidateChatPermission(chatParams.ChatSessionId);
+            if (!validationResult.IsSuccess)
+            {
+                await SendValidationError(outputStream, validationResult);
+                return;
+            }
+
+            await _chatServiceStreamClient.PostStreamAsync(
+                "/Chat/chat_stream",
+                chatParams,
+                outputStream,
+                cancellationToken
+            );
+        }
+        catch (Exception ex)
+        {
+            await SendErrorEvent(outputStream, ex.Message);
+        }
+    }
+
+    private async Task SendValidationError(Stream stream, ResultDTO result)
+    {
+        var errorEvent = new
+        {
+            code = result.Code,
+            message = result.Message,
+            eventType = "permission_denied"
+        };
+
+        var eventData = $"event: error\ndata: {JsonSerializer.Serialize(errorEvent)}\n\n";
+        await stream.WriteAsync(Encoding.UTF8.GetBytes(eventData));
+        await stream.FlushAsync();
+    }
+
+    private async Task SendErrorEvent(Stream stream, string message)
+    {
+        var errorEvent = new
+        {
+            code = 500,
+            message,
+            eventType = "system_error"
+        };
+
+        var eventData = $"event: error\ndata: {JsonSerializer.Serialize(errorEvent)}\n\n";
+        await stream.WriteAsync(Encoding.UTF8.GetBytes(eventData));
+        await stream.FlushAsync();
     }
 }

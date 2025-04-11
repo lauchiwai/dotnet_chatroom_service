@@ -6,6 +6,7 @@ using Polly;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Scrutor;
+using System.Net.Http.Headers;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,13 @@ builder.Services.AddHttpContextAccessor();
 // 註冊 HttpClient 服務
 builder.Services.AddHttpClient<IChatServiceApiClient, ChatServiceApiClient>(client => { })
     .SetHandlerLifetime(TimeSpan.FromMinutes(15));
+
+builder.Services.AddHttpClient<IChatServiceStreamClient, ChatServiceStreamClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ChatServiceApiSettings:BaseUrl"]);
+    client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("text/event-stream"));
+});
 
 // 加入重試策略
 builder.Services.AddHttpClient<IChatServiceApiClient, ChatServiceApiClient>()

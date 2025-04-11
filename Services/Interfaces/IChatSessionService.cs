@@ -44,4 +44,13 @@ public interface IChatSessionService
     /// <param name="chatParams"></param>
     /// <returns></returns>
     public Task<ResultDTO> Chat(ChatParams chatParams);
+
+    /// <summary>
+    ///  sse 聊天功能
+    /// </summary>
+    /// <param name="outputStream"></param>
+    /// <param name="chatParams"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task ChatStream(Stream outputStream, ChatParams chatParams, CancellationToken cancellationToken);
 }

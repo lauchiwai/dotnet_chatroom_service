@@ -2,7 +2,9 @@
 using Common.Params;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Asn1.Crmf;
 using Services.Interfaces;
+using System.Text;
 
 namespace dotnet_chatroom_service.Controllers;
 
@@ -86,5 +88,22 @@ public class ChatSessionController : ControllerBase
             return Ok(result);
         else
             return BadRequest(result);
+    }
+
+    [HttpPost("ChatStream")]
+    [Authorize]
+    public async Task<IActionResult> ChatStream([FromBody] ChatParams chatParams)
+    {
+        return new StreamedResult(async (outputStream, cancellationToken) =>
+        {
+            try
+            {
+                await _chatSessionService.ChatStream( outputStream, chatParams, cancellationToken );
+            }
+            finally
+            {
+                outputStream.Close();
+            }
+        }, "text/event-stream");
     }
 }
