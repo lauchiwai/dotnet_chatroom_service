@@ -1,0 +1,42 @@
+name: DotNet Chatroom Deployment
+
+on:
+  push:
+    branches: [release]  
+    paths:
+      - 'docker-compose.yml'
+      - 'Dockerfile'
+      - '.dockerignore'
+     
+      - '**/*.sln'      
+      - '**/*.csproj' 
+
+      - 'dotnet_chatroom_service/**'  
+      - 'Services/**'      
+      - 'Repositories/**' 
+      - 'Common/**'  
+      - 'UnitTest/**'   
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+    - name: Generate Config
+      env:
+        DB_SERVER: ${{ secrets.DotNet_DB_Server }}
+        DB_NAME: ${{ secrets.DotNet_DB_Name }}
+        DB_USER: ${{ secrets.DotNet_DB_User }}
+        DB_PASSWORD: ${{ secrets.DotNet_DB_Password }}
+        JWT_SECRET: ${{ secrets.DotNet_JWT_SecretKey }}
+        JWT_ISSUER: ${{ secrets.DotNet_JWT_Issuer }}
+        JWT_AUDIENCE: ${{ secrets.DotNet_JWT_Audience }}
+        CHAT_SERVICE_URL: ${{ secrets.DotNet_ChatService_BaseUrl }}
+      run: |
+        # 使用 envsubst 替換模板 (需預先安裝 gettext)
+        envsubst < config/appsettings.Secrets.json > appsettings.Production.json
+        
+        # 驗證敏感參數是否正確替換
+        if grep -q '\${' appsettings.Production.json; then
+          echo "錯誤：存在未替換的占位符！"
+          exit 1
+        fi
