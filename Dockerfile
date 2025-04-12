@@ -25,6 +25,8 @@ RUN dotnet publish "dotnet_chatroom_service/dotnet_chatroom_service.csproj" \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
+COPY appsettings*.json ./
+
 ENV ASPNETCORE_ENVIRONMENT=Production \
     ASPNETCORE_URLS=http://+:8080 \
     DotNet_ConnectionStrings__DefaultConnection=unset \

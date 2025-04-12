@@ -6,22 +6,22 @@ on:
     paths:
       - 'docker-compose.yml'
       - 'Dockerfile'
-      - '.dockerignore'
-     
-      - '**/*.sln'      
-      - '**/*.csproj' 
-
-      - 'dotnet_chatroom_service/**'  
-      - 'Services/**'      
-      - 'Repositories/**' 
-      - 'Common/**'  
-      - 'UnitTest/**'   
+      - 'dotnet_chatroom_service/**'
 
 jobs:
   deploy:
     runs-on: [self-hosted, Windows, X64]
+    env:
+      COMPOSE_PROJECT_NAME: dotnet-chatroom
+
     steps:
-    - name: Generate Config
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        path: 'src'
+
+    - name: Generate Config Files
+      working-directory: ./src/dotnet_chatroom_service
       env:
         DB_SERVER: ${{ secrets.DotNet_DB_Server }}
         DB_NAME: ${{ secrets.DotNet_DB_Name }}
@@ -30,13 +30,49 @@ jobs:
         JWT_SECRET: ${{ secrets.DotNet_JWT_SecretKey }}
         JWT_ISSUER: ${{ secrets.DotNet_JWT_Issuer }}
         JWT_AUDIENCE: ${{ secrets.DotNet_JWT_Audience }}
-        CHAT_SERVICE_URL: ${{ secrets.DotNet_ChatService_BaseUrl }}
+        PY_CHATSERVICE_BASEURL: ${{ secrets.DOTNET_CHATSERVICE_BASEURL }}
       run: |
-        # 使用 envsubst 替換模板 (需預先安裝 gettext)
-        envsubst < config/appsettings.Secrets.json > appsettings.Production.json
-        
-        # 驗證敏感參數是否正確替換
-        if grep -q '\${' appsettings.Production.json; then
-          echo "錯誤：存在未替換的占位符！"
-          exit 1
-        fi
+        # 生成 appsettings.Production.json
+        (Get-Content "appsettings.Secrets.json") `
+          -replace '\$\{DB_SERVER\}', $env:DB_SERVER `
+          -replace '\$\{DB_NAME\}', $env:DB_NAME `
+          -replace '\$\{DB_USER\}', $env:DB_USER `
+          -replace '\$\{DB_PASSWORD\}', $env:DB_PASSWORD `
+          -replace '\$\{JWT_SECRET\}', $env:JWT_SECRET `
+          -replace '\$\{JWT_ISSUER\}', $env:JWT_ISSUER `
+          -replace '\$\{CHAT_SERVICE_URL\}', $env:PY_CHATSERVICE_BASEURL `
+          -replace '\$\{JWT_AUDIENCE\}', $env:JWT_AUDIENCE |
+        Set-Content "appsettings.Production.json"
+
+        # 生成 .env.production
+        @"
+        DB_SERVER=$env:DB_SERVER
+        DB_NAME=$env:DB_NAME
+        DB_USER=$env:DB_USER
+        DB_PASSWORD=$env:DB_PASSWORD
+        JWT_SECRET=$env:JWT_SECRET
+        JWT_ISSUER=$env:JWT_ISSUER
+        JWT_AUDIENCE=$env:JWT_AUDIENCE
+        ASPNETCORE_ENVIRONMENT=Production
+        "@ | Out-File -FilePath "../.env.production" -Encoding UTF8
+
+    - name: Docker Deployment
+      working-directory: ./src
+      run: |
+        docker compose down
+        docker compose up -d --build
+
+    - name: Remove Old Images
+      run: |
+        $currentTag = "${{ env.IMAGE_TAG }}"
+        docker images --filter=reference='${COMPOSE_PROJECT_NAME}_*:*' --format "{{.Repository}}:{{.Tag}}" | 
+        Where-Object { 
+          $_ -notmatch "${env:COMPOSE_PROJECT_NAME}_*:$currentTag" 
+        } | ForEach-Object {
+          docker rmi -f $_
+        }
+
+    - name: System Cleanup 
+      run: |
+        docker system prune -f --filter "until=24h"
+        docker volume prune -f

@@ -7,7 +7,6 @@ using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Scrutor;
 using System.Net.Http.Headers;
-using System;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
