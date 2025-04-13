@@ -20,6 +20,9 @@ public interface IRepository<TEntity> where TEntity : class
     /// <summary>批量新增</summary>
     Task AddRangeAsync(IEnumerable<TEntity> entities);
 
+    /// <summary>新增實體</summary>
+    void Add(TEntity entity);
+
     /// <summary>更新實體</summary>
     void Update(TEntity entity);
 
@@ -27,7 +30,7 @@ public interface IRepository<TEntity> where TEntity : class
     void Delete(TEntity entity);
 
     /// <summary>依ID刪除</summary>
-    Task DeleteByIdAsync<TId>(TId id) where TId : notnull;
+    Task<bool> DeleteByIdAsync<TId>(TId id) where TId : notnull;
 
     /// <summary>檢查是否存在</summary>
     Task<bool> ExistsAsync(Expression<Func<TEntity, bool>> predicate);
@@ -55,13 +58,21 @@ public class MyRepository<TEntity> : IRepository<TEntity> where TEntity : class
     public async Task AddAsync(TEntity entity) => await _dbSet.AddAsync(entity);
     public async Task AddRangeAsync(IEnumerable<TEntity> entities) => await _dbSet.AddRangeAsync(entities);
 
+    public void Add(TEntity entity) => _dbSet.Add(entity);
     public void Update(TEntity entity) => _dbSet.Update(entity);
     public void Delete(TEntity entity) => _dbSet.Remove(entity);
 
-    public async Task DeleteByIdAsync<TId>(TId id)
+    public async Task<bool> DeleteByIdAsync<TId>(TId id)
     {
         var entity = await GetByIdAsync(id);
-        if (entity != null) Delete(entity);
+        if (entity == null)
+        {
+            return false; 
+        }
+
+        Delete(entity);
+        await SaveChangesAsync(); 
+        return true;
     }
 
     public async Task<bool> ExistsAsync(Expression<Func<TEntity, bool>> predicate)

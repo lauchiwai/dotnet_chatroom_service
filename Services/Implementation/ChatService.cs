@@ -20,19 +20,21 @@ public class ChatService : IChatService
     private readonly IChatServiceApiClient _chatHttpClient;
     private readonly IChatServiceStreamClient _chatServiceStreamClient;
     private readonly IRepository<ChatSession> _chatSessionRepository;
-
+    private readonly IRepository<OutboxMessage> _outboxMessageRepository;
     public ChatService(
         MyDbContext context,
         IUserHelper jwtHelper,
         IChatServiceApiClient chatHttpClient,
         IChatServiceStreamClient chatServiceStreamClient,
-         IRepository<ChatSession> chatSessionRepository)
+        IRepository<ChatSession> chatSessionRepository,
+        IRepository<OutboxMessage> outboxMessageRepository)
     {
         _context = context;
         _jwtHelper = jwtHelper;
         _chatHttpClient = chatHttpClient;
         _chatServiceStreamClient = chatServiceStreamClient;
         _chatSessionRepository = chatSessionRepository;
+        _outboxMessageRepository = outboxMessageRepository;
     }
 
     public async Task<ResultDTO> GenerateChatSession(string userTimeZoneId = "Asia/Hong_Kong")
@@ -155,49 +157,40 @@ public class ChatService : IChatService
 
     public async Task<ResultDTO> DeleteChatData(string sessionId)
     {
-        var deleteChatHistoryResult = await DeleteChatHistoryBySessionId(sessionId);
-        if (!deleteChatHistoryResult.IsSuccess)
-        {
-            return deleteChatHistoryResult;
-        }
-
-        var deleteChatSessionResult = await DeleteChatSessionBySessionId(sessionId);
-        if (!deleteChatSessionResult.IsSuccess)
-        {
-            return deleteChatSessionResult;
-        }
-
-        return new ResultDTO()
-        {
-            IsSuccess = true,
-            Message = "delete successs"
-        };
-    }
-
-    public async Task<ResultDTO> DeleteChatHistoryBySessionId(string sessionId)
-    {
-        var response = await _chatHttpClient.DeleteAsync<ChatServiceHttpClientResultDto>($"Chat/deleteChatHistoryBySessionId/{sessionId}");
-        return new ResultDTO()
-        {
-            IsSuccess = response.success,
-            Data = response.data,
-            Message = response.message,
-        };
-    }
-
-    public async Task<ResultDTO> DeleteChatSessionBySessionId(string sessionId)
-    {
         var result = new ResultDTO() { IsSuccess = true };
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
         try
         {
             var chatSession = await _chatSessionRepository.GetQueryable()
-               .FirstAsync(a => a.SessionId.ToString() == sessionId);
+              .FirstOrDefaultAsync(a => a.SessionId.ToString() == sessionId);
+
+            if (chatSession == null)
+            {
+                result.IsSuccess = false;
+                return result;
+            }
 
             _chatSessionRepository.Delete(chatSession);
+
+            var outboxMessage = new OutboxMessage
+            {
+                Id = Guid.NewGuid().ToString(), 
+                EventType = "ChatSessionDeleted",
+                Payload = JsonSerializer.Serialize(new { SessionId = sessionId }),
+                CreatedTime = DateTime.UtcNow,
+                IsPublished = false, 
+                RetryCount = 0
+            };
+
+            _outboxMessageRepository.Add(outboxMessage);
+
             await _chatSessionRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync();
             result.IsSuccess = false;
             result.Message = ex.Message;
         }

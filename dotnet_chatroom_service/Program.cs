@@ -6,6 +6,7 @@ using Polly;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Scrutor;
+using Services.Publish;
 using System.Net.Http.Headers;
 using System.Text;
 
@@ -46,6 +47,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+// services
 builder.Services.Scan(scan => scan
      .FromApplicationDependencies(assembly =>
         assembly.FullName.StartsWith("Services") ||
@@ -53,16 +55,23 @@ builder.Services.Scan(scan => scan
         assembly == typeof(Program).Assembly
     )
     .AddClasses(classes => classes
-        .Where(t => t.Name.EndsWith("Service") || t.Name.EndsWith("Helper"))
+        .Where(t =>
+            (t.Name.EndsWith("Service") || t.Name.EndsWith("Helper")) &&
+            !typeof(IHostedService).IsAssignableFrom(t) // 排除实现了 IHostedService 的类
+        )
     )
     .UsingRegistrationStrategy(RegistrationStrategy.Skip)
     .AsImplementedInterfaces()
     .WithScopedLifetime()
 );
 
+// publish service
+builder.Services.AddHostedService<OutboxPublisherService>();
+
 // db services 
 builder.Services.AddDbContext<MyDbContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")),
+    ServiceLifetime.Scoped);
 
 // db repository 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(MyRepository<>));
@@ -92,7 +101,7 @@ builder.Services.AddAuthentication(options =>
     {
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"認證失敗: {context.Exception.Message}");
+            Console.WriteLine($"jwt auth error : {context.Exception.Message}");
             return Task.CompletedTask;
         }
     };
@@ -137,9 +146,9 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 app.UseHttpsRedirection();
 app.UseRouting();
-app.UseCors("AllowAll"); // 启用 CORS
+app.UseCors("AllowAll");
 
-app.UseAuthentication(); // 必须先于 Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

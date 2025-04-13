@@ -6,17 +6,18 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: dotnet-chatroom
-    env_file:
-      - .env.production
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
     ports:
       - "11115:8080"
     networks:
+      - rbmq-network
       - chat_service_network
       - sqlserver-network
 
 networks:
+  rbmq-network:
+    external: true
   chat_service_network:
     external: true
   sqlserver-network:
