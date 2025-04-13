@@ -19,6 +19,13 @@ public interface IChatService
     public Task<ResultDTO> GetChatSessionList();
 
     /// <summary>
+    /// 驗證 聊天室權限 
+    /// </summary>
+    /// <param name="sessionId"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> ValidateChatPermission(string sessionId);
+
+    /// <summary>
     /// 測試 heartbeat
     /// </summary>
     /// <returns></returns>

@@ -144,12 +144,6 @@ public class ChatService : IChatService
 
     public async Task<ResultDTO> GetChatHistoryBySessionId(string sessionId)
     {
-        var validateResult = await ValidateChatPermission(sessionId);
-        if (!validateResult.IsSuccess)
-        {
-            return validateResult;
-        }
-
         var response = await _chatHttpClient.GetAsync<ChatServiceHttpClientResultDto>($"Chat/getChatHistoryBySessionId/{sessionId}");
         return new ResultDTO()
         {
@@ -161,12 +155,6 @@ public class ChatService : IChatService
 
     public async Task<ResultDTO> DeleteChatData(string sessionId)
     {
-        var validateResult = await ValidateChatPermission(sessionId);
-        if (!validateResult.IsSuccess)
-        {
-            return validateResult;
-        }
-
         var deleteChatHistoryResult = await DeleteChatHistoryBySessionId(sessionId);
         if (!deleteChatHistoryResult.IsSuccess)
         {

@@ -56,8 +56,13 @@ public class ChatController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetChatHistoryBySessionId(string sessionId)
     {
-        var result = await _chatService.GetChatHistoryBySessionId(sessionId);
+        var validateResult = await _chatService.ValidateChatPermission(sessionId);
+        if (!validateResult.IsSuccess)
+        {
+            return BadRequest(validateResult);
+        }
 
+        var result = await _chatService.GetChatHistoryBySessionId(sessionId);
         if (result.IsSuccess)
             return Ok(result);
         else
@@ -68,8 +73,13 @@ public class ChatController : ControllerBase
     [Authorize]
     public async Task<IActionResult> DeleteChatData(string sessionId)
     {
-        var result = await _chatService.DeleteChatData(sessionId);
+        var validateResult = await _chatService.ValidateChatPermission(sessionId);
+        if (!validateResult.IsSuccess)
+        {
+            return BadRequest(validateResult);
+        }
 
+        var result = await _chatService.DeleteChatData(sessionId);
         if (result.IsSuccess)
             return Ok(result);
         else
