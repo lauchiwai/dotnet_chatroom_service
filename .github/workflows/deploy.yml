@@ -3,22 +3,24 @@ name: DotNet Chatroom Deployment
 on:
   push:
     branches: [release]  
-    paths:
-      - 'docker-compose.yml'
-      - 'Dockerfile'
-      - 'dotnet_chatroom_service/**'
 
 jobs:
   deploy:
     runs-on: [self-hosted, Windows, X64]
     env:
       COMPOSE_PROJECT_NAME: dotnet-chatroom
+      IMAGE_NAME: dotnet-chatroom
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         path: 'src'
+
+    - name: Run Unit Tests 
+      working-directory: ./src/dotnet_chatroom_service
+      run: |
+        dotnet test
 
     - name: Generate Config Files
       working-directory: ./src/dotnet_chatroom_service
@@ -35,7 +37,6 @@ jobs:
         RBMQ_PASSWORD: ${{ secrets.RBMQ_PASSWORD }}
         PY_CHATSERVICE_BASEURL: ${{ secrets.DOTNET_CHATSERVICE_BASEURL }}
       run: |
-        # 生成 appsettings.Production.json
         (Get-Content "appsettings.Secrets.json") `
           -replace '\$\{DB_SERVER\}', $env:DB_SERVER `
           -replace '\$\{DB_NAME\}', $env:DB_NAME `
@@ -52,21 +53,22 @@ jobs:
 
         Get-Content "appsettings.Production.json"
         
+    - name: Build and Push Image
+      working-directory: ./src
+      run: |
+        docker build -t ${{ env.IMAGE_NAME }}:latest .
+
     - name: Docker Deployment
       working-directory: ./src
       run: |
         docker compose down
-        docker compose up -d --build
+        docker compose up -d
 
     - name: Remove Old Images
       run: |
-        $currentTag = "${{ env.IMAGE_TAG }}"
-        docker images --filter=reference='${COMPOSE_PROJECT_NAME}_*:*' --format "{{.Repository}}:{{.Tag}}" | 
-        Where-Object { 
-          $_ -notmatch "${env:COMPOSE_PROJECT_NAME}_*:$currentTag" 
-        } | ForEach-Object {
-          docker rmi -f $_
-        }
+        docker images --filter=reference='${{ env.IMAGE_NAME }}:*' --format "{{.Repository}}:{{.Tag}}" | 
+        Where-Object { $_ -ne "${{ env.IMAGE_NAME }}:latest" } | 
+        ForEach-Object { docker rmi -f $_ }
 
     - name: System Cleanup 
       run: |
