@@ -38,13 +38,16 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
-    {
-        builder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader()
-               .WithExposedHeaders("Authorization");
-    });
+    options.AddPolicy(name: "MyAllowSpecificOrigins",
+        policy =>
+        {
+            policy.WithOrigins(
+                "https://oniind244.online",
+                "http://localhost:5173",
+                "http://localhost:11116")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        });
 });
 
 // services
@@ -146,11 +149,16 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 app.UseHttpsRedirection();
 app.UseRouting();
-app.UseCors("AllowAll");
+app.UseCors("MyAllowSpecificOrigins");
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.Use((context, next) =>
+{
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("Permissions-Policy", "geolocation=()");
+    return next();
+});
 app.MapControllers();
 
 app.Run();
