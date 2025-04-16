@@ -198,17 +198,6 @@ public class ChatService : IChatService
         return result;
     }
 
-    public async Task<ResultDTO> Chat(ChatParams chatParams)
-    {
-        var response = await _chatHttpClient.PostAsync<ChatParams, ChatServiceHttpClientResultDto>("Chat/chat", chatParams);
-        return new ResultDTO()
-        {
-            IsSuccess = response.success,
-            Data = response.data,
-            Message = response.message
-        };
-    }
-
     public async Task<ResultDTO> RefreshChatSessionTime(string sessionId)
     {
         var result = new ResultDTO() { IsSuccess = true };

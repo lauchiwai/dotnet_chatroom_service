@@ -53,13 +53,6 @@ public interface IChatService
     public Task<ResultDTO> DeleteChatData(string sessionId);
 
     /// <summary>
-    /// 聊天功能
-    /// </summary>
-    /// <param name="chatParams"></param>
-    /// <returns></returns>
-    public Task<ResultDTO> Chat(ChatParams chatParams);
-
-    /// <summary>
     ///  sse 聊天功能
     /// </summary>
     /// <param name="outputStream"></param>
