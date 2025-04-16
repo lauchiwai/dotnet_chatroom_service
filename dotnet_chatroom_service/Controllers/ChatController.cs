@@ -52,9 +52,9 @@ public class ChatController : ControllerBase
             return BadRequest(result);
     }
 
-    [HttpGet("GetChatHistoryBySessionId/{sessionId}")]
+    [HttpGet("GetChatHistory/{sessionId}")]
     [Authorize]
-    public async Task<IActionResult> GetChatHistoryBySessionId(string sessionId)
+    public async Task<IActionResult> GetChatHistory(string sessionId)
     {
         var validateResult = await _chatService.ValidateChatPermission(sessionId);
         if (!validateResult.IsSuccess)
@@ -62,7 +62,7 @@ public class ChatController : ControllerBase
             return BadRequest(validateResult);
         }
 
-        var result = await _chatService.GetChatHistoryBySessionId(sessionId);
+        var result = await _chatService.GetChatHistory(sessionId);
         if (result.IsSuccess)
             return Ok(result);
         else

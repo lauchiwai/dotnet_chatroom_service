@@ -144,7 +144,7 @@ public class ChatService : IChatService
         return result;
     }
 
-    public async Task<ResultDTO> GetChatHistoryBySessionId(string sessionId)
+    public async Task<ResultDTO> GetChatHistory(string sessionId)
     {
         var response = await _chatHttpClient.GetAsync<ChatServiceHttpClientResultDto>($"Chat/getChatHistoryBySessionId/{sessionId}");
         return new ResultDTO()
