@@ -1,42 +1,33 @@
-## 在本地初始化 Git 倉庫
+# .net 微服務 - chatService
 
-1. cd /path/to/your/dotnet-project
-2. git init
+基於.NET 8的現代化微服務架構，整合雙Token驗證、消息佇列與雲原生部署方案。
 
-## 配置 .gitignore 文件
+## 📋 功能列表
 
-dotnet new gitignore
+- **認證授權**
+  - JWT + Refresh Token 雙Token機制
+- **資料層**
+  - MSSQL 資料庫整合
+  - Entity Framework Core 8
+  - Repository Pattern 實現
+- **異步通訊**
+  - RabbitMQ 消息生產
+  - HTTP Client 服務間通訊
+- **即時推送**
+  - Server-Sent Events (SSE) 中轉層
+- **基礎設施**
+  - Docker 容器化
+  - CI/CD 自動化流水線
+  - Swagger API 文檔
 
-## 將文件加入本地倉庫
+## 🛠️ 環境要求
 
-git add .
-git commit -m "Initial commit for .NET 8 project"
+- .NET 8 SDK
+- Docker 20.10+
+- MSSQL 2022 / Docker版
+- RabbitMQ 3.12+
+- Git 2.40+
 
-## 關聯到遠端 github
+推薦IDE：
 
-git remote add origin https://github.com/yourusername/my-dotnet-project.git
-
-# docker command
-
-## 清理构建缓存
-
-docker-compose down -v --remove-orphans
-docker builder prune -af
-
-## 重新构建
-
-docker-compose up --build -d
-
-## 查看依赖安装情况
-
-docker exec -it py_chat_service-chat-service-1 pip list
-
-## 注意 ：
-
-需要連接到同一個網絡才能呼叫
-
-斷開 sql1 的預設網路 (sql1 是你的 docker container)
-docker network disconnect bridge sql1
-
-加入自定義網路
-docker network connect app-network sql1
+- VS 2022
