@@ -28,6 +28,44 @@ public class AuthenticateService : IAuthenticateService
         _authRepository = authRepository;
     }
 
+    public async Task<ResultDTO> RamdomRegister()
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var randomRegisterFrom = new RegisterParams
+            {
+                Username = Guid.NewGuid().ToString(),
+                Password = "AdminPw006*"
+            };
+
+            if (await _authRepository.ExistsAsync(u => u.UserName == randomRegisterFrom.Username))
+            {
+                result.IsSuccess = false;
+                result.Message = "Username has already been registered";
+                return result;
+            }
+
+            var newUser = new Authenticate
+            {
+                UserName = randomRegisterFrom.Username,
+                Pw = BCrypt.Net.BCrypt.HashPassword(randomRegisterFrom.Password)
+            };
+
+            await _authRepository.AddAsync(newUser);
+            await _authRepository.SaveChangesAsync();
+
+            result.Data = randomRegisterFrom;
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
     public async Task<ResultDTO> Register([FromBody] RegisterParams registerFrom)
     {
         var result = new ResultDTO() { IsSuccess = true };

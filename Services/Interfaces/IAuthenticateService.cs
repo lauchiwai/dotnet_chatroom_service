@@ -7,6 +7,12 @@ namespace Services.Interfaces;
 public interface IAuthenticateService
 {
     /// <summary>
+    /// 隨機生成一個賬號
+    /// </summary>
+    /// <returns></returns>
+    public Task<ResultDTO> RamdomRegister();
+
+    /// <summary>
     /// 注冊
     /// </summary>
     /// <param name="registerFrom"></param>

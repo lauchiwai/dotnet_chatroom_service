@@ -15,6 +15,17 @@ public class AuthenticateController : ControllerBase
         _authenticateService = authenticateService;
     }
 
+    [HttpPost("RamdomRegister")]
+    public async Task<IActionResult> RamdomRegister()
+    {
+        var result = await _authenticateService.RamdomRegister();
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
     [HttpPost("Register")]
     public async Task<IActionResult> Register([FromBody] RegisterParams registerFrom)
     {
