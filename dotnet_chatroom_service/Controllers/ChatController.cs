@@ -114,4 +114,21 @@ public class ChatController : ControllerBase
             }
         }, "text/event-stream");
     }
+
+    [HttpPost("SummaryStream")]
+    [Authorize]
+    public async Task<IActionResult> SummaryStream([FromBody] SummaryParams summaryParams)
+    {
+        return new StreamedResult(async (outputStream, cancellationToken) =>
+        {
+            try
+            {
+                await _chatService.SummaryStream(outputStream, summaryParams, cancellationToken);
+            }
+            finally
+            {
+                outputStream.Close();
+            }
+        }, "text/event-stream");
+    }
 }

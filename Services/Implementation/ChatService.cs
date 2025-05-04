@@ -252,6 +252,30 @@ public class ChatService : IChatService
         }
     }
 
+    public async Task SummaryStream(Stream outputStream, SummaryParams summaryParams, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var validationResult = await ValidateChatPermission(summaryParams.ChatSessionId);
+            if (!validationResult.IsSuccess)
+            {
+                await SendValidationError(outputStream, validationResult);
+                return;
+            }
+
+            await _chatServiceStreamClient.PostStreamAsync(
+                "/Chat/summary_stream",
+                summaryParams,
+                outputStream,
+                cancellationToken
+            );
+        }
+        catch (Exception ex)
+        {
+            await SendErrorEvent(outputStream, ex.Message);
+        }
+    }
+
     private async Task SendValidationError(Stream stream, ResultDTO result)
     {
         var errorEvent = new
