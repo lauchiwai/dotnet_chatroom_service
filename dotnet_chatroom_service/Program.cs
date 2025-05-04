@@ -17,10 +17,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 
 // 註冊 HttpClient 服務
-builder.Services.AddHttpClient<IChatServiceApiClient, ChatServiceApiClient>(client => { })
+builder.Services.AddHttpClient<IApiClient, ApiClient>(client => { })
     .SetHandlerLifetime(TimeSpan.FromMinutes(15));
 
-builder.Services.AddHttpClient<IChatServiceStreamClient, ChatServiceStreamClient>(client =>
+builder.Services.AddHttpClient<IStreamClient, StreamClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ChatServiceApiSettings:BaseUrl"]);
     client.DefaultRequestHeaders.Accept.Add(
@@ -28,7 +28,7 @@ builder.Services.AddHttpClient<IChatServiceStreamClient, ChatServiceStreamClient
 });
 
 // 加入重試策略
-builder.Services.AddHttpClient<IChatServiceApiClient, ChatServiceApiClient>()
+builder.Services.AddHttpClient<IApiClient, ApiClient>()
     .AddTransientHttpErrorPolicy(policy =>
         policy.WaitAndRetryAsync(3, retryAttempt =>
             TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));

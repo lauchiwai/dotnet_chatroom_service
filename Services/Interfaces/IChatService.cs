@@ -60,4 +60,14 @@ public interface IChatService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task ChatStream(Stream outputStream, ChatParams chatParams, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// sse 獲取摘要
+    /// </summary>
+    /// <param name="outputStream"></param>
+    /// <param name="summaryParams"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task SummaryStream(Stream outputStream, SummaryParams summaryParams, CancellationToken cancellationToken);
+    
 }

@@ -5,20 +5,20 @@ using System.Text.Json;
 
 namespace Repositories.HttpClients;
 
-public interface IChatServiceApiClient
+public interface IApiClient
 {
     Task<T> GetAsync<T>(string endpoint);
     Task<TResponse> PostAsync<TRequest, TResponse>(string endpoint, TRequest request);
     Task<TResponse> DeleteAsync<TResponse>(string endpoint); 
 }
 
-public class ChatServiceApiClient : IChatServiceApiClient
+public class ApiClient : IApiClient
 {
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ITokenProvider _tokenProvider;
 
-    public ChatServiceApiClient(
+    public ApiClient(
         HttpClient httpClient,
         IConfiguration configuration,
         ITokenProvider tokenProvider)

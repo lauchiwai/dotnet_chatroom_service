@@ -17,22 +17,22 @@ public class ChatService : IChatService
 {
     private readonly MyDbContext _context;
     private readonly IUserHelper _jwtHelper;
-    private readonly IChatServiceApiClient _chatHttpClient;
-    private readonly IChatServiceStreamClient _chatServiceStreamClient;
+    private readonly IApiClient _httpClient;
+    private readonly IStreamClient _streamClient;
     private readonly IRepository<ChatSession> _chatSessionRepository;
     private readonly IRepository<OutboxMessage> _outboxMessageRepository;
     public ChatService(
         MyDbContext context,
         IUserHelper jwtHelper,
-        IChatServiceApiClient chatHttpClient,
-        IChatServiceStreamClient chatServiceStreamClient,
+        IApiClient httpClient,
+        IStreamClient streamClient,
         IRepository<ChatSession> chatSessionRepository,
         IRepository<OutboxMessage> outboxMessageRepository)
     {
         _context = context;
         _jwtHelper = jwtHelper;
-        _chatHttpClient = chatHttpClient;
-        _chatServiceStreamClient = chatServiceStreamClient;
+        _httpClient = httpClient;
+        _streamClient = streamClient;
         _chatSessionRepository = chatSessionRepository;
         _outboxMessageRepository = outboxMessageRepository;
     }
@@ -100,7 +100,7 @@ public class ChatService : IChatService
 
     public async Task<ResultDTO> CheackChatHttpClientHealth()
     {
-        var response = await _chatHttpClient.GetAsync<ChatServiceHttpClientResultDto>("health");
+        var response = await _httpClient.GetAsync<ChatServiceHttpClientResultDto>("health");
         return new ResultDTO()
         {
             IsSuccess = response.success,
@@ -146,7 +146,7 @@ public class ChatService : IChatService
 
     public async Task<ResultDTO> GetChatHistory(string sessionId)
     {
-        var response = await _chatHttpClient.GetAsync<ChatServiceHttpClientResultDto>($"Chat/getChatHistoryBySessionId/{sessionId}");
+        var response = await _httpClient.GetAsync<ChatServiceHttpClientResultDto>($"Chat/getChatHistoryBySessionId/{sessionId}");
         return new ResultDTO()
         {
             IsSuccess = response.success,
@@ -239,9 +239,33 @@ public class ChatService : IChatService
                 return;
             }
 
-            await _chatServiceStreamClient.PostStreamAsync(
+            await _streamClient.PostStreamAsync(
                 "/Chat/chat_stream",
                 chatParams,
+                outputStream,
+                cancellationToken
+            );
+        }
+        catch (Exception ex)
+        {
+            await SendErrorEvent(outputStream, ex.Message);
+        }
+    }
+
+    public async Task SummaryStream(Stream outputStream, SummaryParams summaryParams, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var validationResult = await ValidateChatPermission(summaryParams.ChatSessionId);
+            if (!validationResult.IsSuccess)
+            {
+                await SendValidationError(outputStream, validationResult);
+                return;
+            }
+
+            await _streamClient.PostStreamAsync(
+                "/Chat/summary_stream",
+                summaryParams,
                 outputStream,
                 cancellationToken
             );

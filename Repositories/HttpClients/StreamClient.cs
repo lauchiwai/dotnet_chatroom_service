@@ -5,18 +5,18 @@ using System.Text;
 
 namespace Repositories.HttpClients;
 
-public interface IChatServiceStreamClient
+public interface IStreamClient
 {
     public Task PostStreamAsync<TRequest>(string endpoint, TRequest request, Stream responseStream, CancellationToken cancellationToken);
 }
 
-public class ChatServiceStreamClient : IChatServiceStreamClient
+public class StreamClient : IStreamClient
 {
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ITokenProvider _tokenProvider;
 
-    public ChatServiceStreamClient(
+    public StreamClient(
         HttpClient httpClient,
         IConfiguration configuration,
         ITokenProvider tokenProvider)
