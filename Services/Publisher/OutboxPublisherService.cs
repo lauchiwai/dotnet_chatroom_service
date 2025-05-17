@@ -43,6 +43,9 @@ public class OutboxPublisherService : BackgroundService
                 {
                     try
                     {
+
+                        var eventConfig = GetEventConfig(message.EventType);
+
                         var factory = new ConnectionFactory
                         {
                             HostName = _configuration["RabbitmqConfig:HostName"],
@@ -57,19 +60,19 @@ public class OutboxPublisherService : BackgroundService
 
                         // 聲明持久化 Queue
                         channel.QueueDeclare(
-                            queue: "chat_deleted_queue",
+                            queue: eventConfig.QueueName,
                             durable: true,
                             exclusive: false,
                             autoDelete: false,
                             arguments: new Dictionary<string, object> {
-                                { "x-dead-letter-exchange", "chat_dlx" },
-                                { "x-dead-letter-routing-key", "chat.dead" }
+                                { "x-dead-letter-exchange", eventConfig.DlExchange },
+                                { "x-dead-letter-routing-key", eventConfig.DlRoutingKey }
                             }
                         );
 
                         // 死信交换器声明
                         channel.ExchangeDeclare(
-                            exchange: "chat_dlx",
+                            exchange: eventConfig.DlExchange,
                             type: ExchangeType.Direct,
                             durable: true,
                             autoDelete: false
@@ -77,9 +80,9 @@ public class OutboxPublisherService : BackgroundService
 
                         // 綁定 Queue
                         channel.QueueBind(
-                            queue: "chat_deleted_queue",
-                            exchange: "chat_events",
-                            routingKey: "chat.deleted"
+                            queue: eventConfig.QueueName,
+                            exchange: eventConfig.Exchange,
+                            routingKey: eventConfig.RoutingKey
                         );
 
                         // 設定消息持久化
@@ -88,8 +91,8 @@ public class OutboxPublisherService : BackgroundService
 
                         // 發佈消息
                         channel.BasicPublish(
-                            exchange: "chat_events",
-                            routingKey: "chat.deleted",
+                            exchange: eventConfig.Exchange,
+                            routingKey: eventConfig.RoutingKey,
                             mandatory: true,
                             basicProperties: properties,
                             body: Encoding.UTF8.GetBytes(message.Payload)
@@ -118,6 +121,24 @@ public class OutboxPublisherService : BackgroundService
                 }
             }
             await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        }
+    }
+
+
+    private (string Exchange, string RoutingKey, string QueueName, string DlExchange, string DlRoutingKey) GetEventConfig(string eventType)
+    {
+        switch (eventType)
+        {
+            case "ChatSessionDeleted":
+                return (
+                    Exchange: "chat_events",
+                    RoutingKey: "chat.deleted",
+                    QueueName: "chat_deleted_queue",
+                    DlExchange: "chat_dlx",
+                    DlRoutingKey: "chat.dead"
+                );
+            default:
+                throw new NotSupportedException($"Unsupported event type: {eventType}");
         }
     }
 }
