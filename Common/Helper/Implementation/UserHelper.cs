@@ -10,7 +10,14 @@ namespace Common.Helper.Implementation;
 
 public class JwtUserInfo
 {
+    /// <summary>
+    /// 使用者編號
+    /// </summary>
     public string UserId { get; set; }
+
+    /// <summary>
+    /// 使用者名稱
+    /// </summary>
     public string UserName { get; set; }
 }
 
@@ -48,16 +55,13 @@ public class UserHelper : IUserHelper
 
         foreach (var property in properties)
         {
-            // 獲取映射的 Claim 類型
             var claimType = _claimMappings?.ContainsKey(property.Name) == true
                 ? _claimMappings[property.Name]
                 : property.Name;
 
-            // 查找對應的 Claim
             var claim = claims.FirstOrDefault(c => c.Type == claimType);
             if (claim != null)
             {
-                // 將 Claim 的值賦給屬性
                 var value = Convert.ChangeType(claim.Value, property.PropertyType);
                 property.SetValue(result, value);
             }
@@ -77,10 +81,10 @@ public class UserHelper : IUserHelper
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtConfig:SecretKey"])),
-            ValidateIssuer = false, // 是否驗證簽發者
-            ValidateAudience = false, // 是否驗證接收者
-            ValidateLifetime = true, // 是否驗證有效期
-            ClockSkew = TimeSpan.Zero // 允許的時間偏差
+            ValidateIssuer = false, 
+            ValidateAudience = false, 
+            ValidateLifetime = true, 
+            ClockSkew = TimeSpan.Zero 
         };
 
         try
@@ -105,7 +109,6 @@ public class UserHelper : IUserHelper
             throw new InvalidOperationException("HTTP 上下文不可用");
         }
 
-        // 從 Authorization Header 中獲取 Token
         var authorizationHeader = httpContext.Request.Headers["Authorization"].ToString();
         if (string.IsNullOrEmpty(authorizationHeader) || !authorizationHeader.StartsWith("Bearer "))
         {

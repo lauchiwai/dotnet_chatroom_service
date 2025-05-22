@@ -1,5 +1,5 @@
 ﻿using Common.Dto;
-using Common.Params;
+using Common.Params.Article;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Implementation;
@@ -18,20 +18,57 @@ public class ArticleController : ControllerBase
         _articleService = articleService;
     }
 
-    [HttpPost("GenerateArticle")]
+    [HttpPost("FetchAiArticle")]
     //[Authorize]
-    public async Task<IActionResult> GenerateArticle([FromBody] ArticleGenerationParams articleGenerationParams)
+    public async Task<IActionResult> FetchAiArticle([FromBody] FetchAiArticleParams fetchAiArticleParams)
     {
         return new StreamedResult(async (outputStream, cancellationToken) =>
         {
             try
             {
-                await _articleService.SteamGenerateArticle(outputStream, articleGenerationParams, cancellationToken);
+                await _articleService.SteamFeatchAiArticle(outputStream, fetchAiArticleParams, cancellationToken);
             }
             finally
             {
                 outputStream.Close();
             }
         }, "text/event-stream");
+    }
+
+    [HttpPost("VectorizeArticle")]
+    //[Authorize]
+    public async Task<IActionResult> VectorizeArticle([FromBody] VectorizeArticleParams vectorizeArticleParams)
+    {
+        var result = await _articleService.VectorizeArticle(vectorizeArticleParams);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+
+    [HttpPost("GenerateArticle")]
+    //[Authorize]
+    public async Task<IActionResult> GenerateArticle([FromBody] GenerateArticleParams generateArticleParams)
+    {
+        var result = await _articleService.GenerateArticle(generateArticleParams);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpGet("GetArticleList")]
+    //[Authorize]
+    public async Task<IActionResult> GetArticleList()
+    {
+        var result = await _articleService.GetArticleList();
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
     }
 }

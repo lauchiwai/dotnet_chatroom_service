@@ -1,11 +1,11 @@
-﻿namespace Common.Params.Article;
+﻿namespace Common.ViewModels.Article;
 
-public class GenerateArticleParams
+public class ArticleViewModel
 {
     /// <summary>
-    /// 文章標題
+    /// 文章id
     /// </summary>
-    public string ArticleTitle { get; set; } = null!;
+    public int ArticleId { get; set; }
 
     /// <summary>
     /// 文章内容

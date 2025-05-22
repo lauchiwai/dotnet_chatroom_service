@@ -1,36 +1,37 @@
 ﻿using Common.Dto;
 using Common.Helper.Interface;
 using Common.Models;
-using Common.Params;
 using Repositories.HttpClients;
-using Repositories.MyDbContext;
 using Services.Interfaces;
 using System.Text.Json;
 using System.Text;
+using Common.Helper.Implementation;
+using Common.Params.Article;
+using Common.ViewModels.Article;
+using Microsoft.EntityFrameworkCore;
+using MediatR;
 
 namespace Services.Implementation;
 
 public class ArticleService : IArticleService
 {
-    private readonly MyDbContext _context;
+    private readonly IMediator _mediator;
     private readonly IUserHelper _jwtHelper;
-    private readonly IApiClient _httpClient;
     private readonly IStreamClient _streamClient;
-    private readonly IRepository<ChatSession> _chatSessionRepository;
+    private readonly IRepository<Article> _articleRepository;
     private readonly IRepository<OutboxMessage> _outboxMessageRepository;
+
     public ArticleService(
-        MyDbContext context,
+        IMediator mediator,
         IUserHelper jwtHelper,
-        IApiClient httpClient,
         IStreamClient streamClient,
-        IRepository<ChatSession> chatSessionRepository,
+        IRepository<Article> articleRepository,
         IRepository<OutboxMessage> outboxMessageRepository)
     {
-        _context = context;
+        _mediator = mediator;
         _jwtHelper = jwtHelper;
-        _httpClient = httpClient;
         _streamClient = streamClient;
-        _chatSessionRepository = chatSessionRepository;
+        _articleRepository = articleRepository;
         _outboxMessageRepository = outboxMessageRepository;
     }
 
@@ -43,7 +44,6 @@ public class ArticleService : IArticleService
             var newArticle = new Article()
             {
                 UserId = userInfo.UserId,
-                ArticleTitle = generateArticleParams.ArticleTitle,
                 ArticleContent = generateArticleParams.ArticleContent,
                 UpdateTime = DateTime.UtcNow
             };
@@ -58,6 +58,15 @@ public class ArticleService : IArticleService
         }
 
         return result;
+    }
+
+    public async Task<ResultDTO> VectorizeArticle(VectorizeArticleParams vectorizeArticleParams)
+    {
+        return await _mediator.Send(new VectorizeArticleCommand
+        {
+            ArticleId = vectorizeArticleParams.ArticleId,
+            CollectionName = vectorizeArticleParams.CollectionName
+        });
     }
 
     public async Task<ResultDTO> GetArticle(int articleId)
@@ -86,6 +95,7 @@ public class ArticleService : IArticleService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 400;
             result.Message = ex.Message;
         }
 
@@ -112,6 +122,7 @@ public class ArticleService : IArticleService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 400;
             result.Message = ex.Message;
         }
 
@@ -124,7 +135,7 @@ public class ArticleService : IArticleService
         {
             await _streamClient.PostStreamAsync(
                 "/Article/stream_generate_article",
-                articleGenerationParams,
+                fetchAiArticleParams,
                 outputStream,
                 cancellationToken
             );
@@ -135,12 +146,11 @@ public class ArticleService : IArticleService
         }
     }
 
-
     private async Task SendErrorEvent(Stream stream, string message)
     {
         var errorEvent = new
         {
-            code = 500,
+            code = 400,
             message,
             eventType = "system_error"
         };

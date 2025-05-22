@@ -66,6 +66,7 @@ public class ChatService : IChatService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 400;
             result.Message = ex.Message;
         }
 
@@ -92,6 +93,7 @@ public class ChatService : IChatService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 400;
             result.Message = ex.Message;
         }
 
@@ -104,6 +106,7 @@ public class ChatService : IChatService
         return new ResultDTO()
         {
             IsSuccess = response.success,
+            Code = response.success ? 200 : 400,
             Data = response.data,
             Message = response.message
         };
@@ -138,6 +141,7 @@ public class ChatService : IChatService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 400;
             result.Message = ex.Message;
         }
 
@@ -150,6 +154,7 @@ public class ChatService : IChatService
         return new ResultDTO()
         {
             IsSuccess = response.success,
+            Code = response.success ? 200 : 400,
             Data = response.data,
             Message = response.message
         };
@@ -168,6 +173,7 @@ public class ChatService : IChatService
             if (chatSession == null)
             {
                 result.IsSuccess = false;
+                result.Code = 404;
                 return result;
             }
 
@@ -175,11 +181,11 @@ public class ChatService : IChatService
 
             var outboxMessage = new OutboxMessage
             {
-                Id = Guid.NewGuid().ToString(), 
+                Id = Guid.NewGuid().ToString(),
                 EventType = "ChatSessionDeleted",
                 Payload = JsonSerializer.Serialize(new { SessionId = sessionId }),
                 CreatedTime = DateTime.UtcNow,
-                IsPublished = false, 
+                IsPublished = false,
                 RetryCount = 0
             };
 
@@ -192,6 +198,7 @@ public class ChatService : IChatService
         {
             await transaction.RollbackAsync();
             result.IsSuccess = false;
+            result.Code = 400;
             result.Message = ex.Message;
         }
 
@@ -207,7 +214,7 @@ public class ChatService : IChatService
                .Where(a => a.SessionId.ToString() == sessionId)
                .FirstOrDefaultAsync();
 
-            if(chatSession == null)
+            if (chatSession == null)
             {
                 result.IsSuccess = false;
                 result.Code = 404;
@@ -223,6 +230,7 @@ public class ChatService : IChatService
         {
             result.IsSuccess = false;
             result.Message = ex.Message;
+            result.Code = 400;
         }
 
         return result;
@@ -280,7 +288,7 @@ public class ChatService : IChatService
     {
         var errorEvent = new
         {
-            code = result.Code,
+            code = 400,
             message = result.Message,
             eventType = "permission_denied"
         };
@@ -294,7 +302,7 @@ public class ChatService : IChatService
     {
         var errorEvent = new
         {
-            code = 500,
+            code = 400,
             message,
             eventType = "system_error"
         };
