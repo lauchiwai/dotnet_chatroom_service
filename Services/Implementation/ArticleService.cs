@@ -1,36 +1,41 @@
 ﻿using Common.Dto;
+using Common.Helper.Implementation;
 using Common.Helper.Interface;
 using Common.Models;
-using Common.Params;
+using Common.Params.Article;
+using Common.ViewModels.Article;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace Services.Implementation;
 
 public class ArticleService : IArticleService
 {
     private readonly MyDbContext _context;
+    private readonly IMediator _mediator;
     private readonly IUserHelper _jwtHelper;
-    private readonly IApiClient _httpClient;
     private readonly IStreamClient _streamClient;
-    private readonly IRepository<ChatSession> _chatSessionRepository;
+    private readonly IRepository<Article> _articleRepository;
     private readonly IRepository<OutboxMessage> _outboxMessageRepository;
+
     public ArticleService(
         MyDbContext context,
+        IMediator mediator,
         IUserHelper jwtHelper,
-        IApiClient httpClient,
         IStreamClient streamClient,
-        IRepository<ChatSession> chatSessionRepository,
+        IRepository<Article> articleRepository,
         IRepository<OutboxMessage> outboxMessageRepository)
     {
         _context = context;
+        _mediator = mediator;
         _jwtHelper = jwtHelper;
-        _httpClient = httpClient;
         _streamClient = streamClient;
-        _chatSessionRepository = chatSessionRepository;
+        _articleRepository = articleRepository;
         _outboxMessageRepository = outboxMessageRepository;
     }
 
@@ -60,6 +65,60 @@ public class ArticleService : IArticleService
         return result;
     }
 
+    public async Task<ResultDTO> DeleteArticle(string articleId)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
+        try
+        {
+            var article = await _articleRepository.GetQueryable()
+              .FirstOrDefaultAsync(a => a.ArticleID.ToString() == articleId);
+
+            if (article == null)
+            {
+                result.IsSuccess = false;
+                result.Code = 404;
+                return result;
+            }
+
+            _articleRepository.Delete(article);
+
+            var outboxMessage = new OutboxMessage
+            {
+                Id = Guid.NewGuid().ToString(),
+                EventType = "ArticleDeleted",
+                Payload = JsonSerializer.Serialize(new { ArticleId = articleId, CollectionName = "articles" }),
+                CreatedTime = DateTime.UtcNow,
+                IsPublished = false,
+                RetryCount = 0
+            };
+
+            _outboxMessageRepository.Add(outboxMessage);
+
+            await _articleRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            result.IsSuccess = false;
+            result.Code = 400;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+    public async Task<ResultDTO> VectorizeArticle(VectorizeArticleParams vectorizeArticleParams)
+    {
+        return await _mediator.Send(new VectorizeArticleCommand
+        {
+            ArticleId = vectorizeArticleParams.ArticleId,
+            CollectionName = vectorizeArticleParams.CollectionName
+        });
+    }
+
     public async Task<ResultDTO> GetArticle(int articleId)
     {
         var result = new ResultDTO() { IsSuccess = true };
@@ -71,6 +130,7 @@ public class ArticleService : IArticleService
               .Select(a => new ArticleViewModel()
               {
                   ArticleId = a.ArticleID,
+                  ArticleTitle = a.ArticleTitle,
                   ArticleContent = a.ArticleContent,
               }).FirstOrDefaultAsync();
 
@@ -86,6 +146,7 @@ public class ArticleService : IArticleService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 400;
             result.Message = ex.Message;
         }
 
@@ -101,10 +162,10 @@ public class ArticleService : IArticleService
             var articleList = await _articleRepository.GetQueryable()
               .Where(a => a.UserId == userInfo.UserId)
               .OrderByDescending(x => x.UpdateTime)
-              .Select(a => new ArticleViewModel()
+              .Select(a => new ArticleListViewModel()
               {
                   ArticleId = a.ArticleID,
-                  ArticleContent = a.ArticleContent,
+                  ArticleTitle = a.ArticleTitle,
               }).ToListAsync();
 
             result.Data = articleList;
@@ -112,6 +173,7 @@ public class ArticleService : IArticleService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 400;
             result.Message = ex.Message;
         }
 
@@ -124,7 +186,7 @@ public class ArticleService : IArticleService
         {
             await _streamClient.PostStreamAsync(
                 "/Article/stream_generate_article",
-                articleGenerationParams,
+                fetchAiArticleParams,
                 outputStream,
                 cancellationToken
             );
@@ -135,12 +197,11 @@ public class ArticleService : IArticleService
         }
     }
 
-
     private async Task SendErrorEvent(Stream stream, string message)
     {
         var errorEvent = new
         {
-            code = 500,
+            code = 400,
             message,
             eventType = "system_error"
         };

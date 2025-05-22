@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Repositories.MyDbContext;
 using Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -18,13 +17,11 @@ namespace Services.Implementation;
 public class AuthenticateService : IAuthenticateService
 {
     private readonly IConfiguration _configuration;
-    private readonly MyDbContext _context;
-    private readonly IRepository<Authenticate> _authRepository; 
+    private readonly IRepository<Authenticate> _authRepository;
 
-    public AuthenticateService(IConfiguration configuration, MyDbContext context, IRepository<Authenticate> authRepository)
+    public AuthenticateService(IConfiguration configuration, IRepository<Authenticate> authRepository)
     {
         _configuration = configuration;
-        _context = context;
         _authRepository = authRepository;
     }
 

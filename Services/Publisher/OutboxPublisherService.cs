@@ -25,6 +25,31 @@ public class OutboxPublisherService : BackgroundService
         _logger = logger;
     }
 
+    private (string Exchange, string RoutingKey, string QueueName, string DlExchange, string DlRoutingKey) GetEventConfig(string eventType)
+    {
+        switch (eventType)
+        {
+            case "ChatSessionDeleted":
+                return (
+                    Exchange: "chat_events",
+                    RoutingKey: "chat.deleted",
+                    QueueName: "chat_deleted_queue",
+                    DlExchange: "chat_dlx",
+                    DlRoutingKey: "chat.dead"
+                );
+            case "ArticleDeleted":
+                return (
+                    Exchange: "article_events",
+                    RoutingKey: "article.deleted",
+                    QueueName: "article_deleted_queue",
+                    DlExchange: "article_dlx",
+                    DlRoutingKey: "article.dead"
+                );
+            default:
+                throw new NotSupportedException($"Unsupported event type: {eventType}");
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -121,24 +146,6 @@ public class OutboxPublisherService : BackgroundService
                 }
             }
             await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-        }
-    }
-
-
-    private (string Exchange, string RoutingKey, string QueueName, string DlExchange, string DlRoutingKey) GetEventConfig(string eventType)
-    {
-        switch (eventType)
-        {
-            case "ChatSessionDeleted":
-                return (
-                    Exchange: "chat_events",
-                    RoutingKey: "chat.deleted",
-                    QueueName: "chat_deleted_queue",
-                    DlExchange: "chat_dlx",
-                    DlRoutingKey: "chat.dead"
-                );
-            default:
-                throw new NotSupportedException($"Unsupported event type: {eventType}");
         }
     }
 }

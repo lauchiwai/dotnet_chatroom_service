@@ -44,6 +44,7 @@ public class VectorService : IVectorService
         return new ResultDTO()
         {
             IsSuccess = response.success,
+            Code = response.success ? 200 : 400,
             Data = response.data,
             Message = response.message
         };

@@ -16,6 +16,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 
+// 註冊 MediatR
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(VectorizeArticleCommandHandler).Assembly));
+
 // 註冊 HttpClient 服務
 builder.Services.AddHttpClient<IApiClient, ApiClient>(client => { })
     .SetHandlerLifetime(TimeSpan.FromMinutes(15));

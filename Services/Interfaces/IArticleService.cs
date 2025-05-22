@@ -1,10 +1,50 @@
 ﻿using Common.Dto;
-using Common.Params;
+using Common.Params.Article;
 
 namespace Services.Interfaces;
 
 public interface IArticleService
 {
-    public Task SteamGenerateArticle(Stream outputStream, ArticleGenerationParams articleGenerationParams, CancellationToken cancellationToken);
- 
+    /// <summary>
+    /// ai 創建文章
+    /// </summary>
+    /// <param name="outputStream"></param>
+    /// <param name="fetchAiArticleParams"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task SteamFeatchAiArticle(Stream outputStream, FetchAiArticleParams fetchAiArticleParams, CancellationToken cancellationToken);
+    
+    /// <summary>
+    /// 創建文章資料
+    /// </summary>
+    /// <param name="generateArticleParams"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> GenerateArticle(GenerateArticleParams generateArticleParams);
+
+    /// <summary>
+    /// 刪除文章資料
+    /// </summary>
+    /// <param name="articleId"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> DeleteArticle(string articleId);
+
+    /// <summary>
+    ///  文章向量化
+    /// </summary>
+    /// <param name="vectorizeArticleParams"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> VectorizeArticle(VectorizeArticleParams vectorizeArticleParams);
+
+    /// <summary>
+    /// 獲取指定文章内容
+    /// </summary>
+    /// <param name="articleId"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> GetArticle(int articleId);
+
+    /// <summary>
+    /// 獲取所有文章内容
+    /// </summary>
+    /// <returns></returns>
+    public Task<ResultDTO> GetArticleList();
 }

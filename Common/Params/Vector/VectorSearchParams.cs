@@ -5,6 +5,12 @@ namespace Common.Params.Vector;
 public class VectorSearchParams
 {
     /// <summary>
+    /// 集合内的id
+    /// </summary>
+    [JsonPropertyName("id")]
+    public required int Id { get; set; }
+
+    /// <summary>
     /// 向量資料集 名稱
     /// </summary>
     [JsonPropertyName("collection_name")]

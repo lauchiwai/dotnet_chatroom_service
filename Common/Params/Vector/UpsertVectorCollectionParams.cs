@@ -5,6 +5,12 @@ namespace Common.Params.Vector;
 public class UpsertVectorCollectionParams
 {
     /// <summary>
+    /// 集合内的id
+    /// </summary>
+    [JsonPropertyName("id")]
+    public required int Id { get; set; }
+
+    /// <summary>
     /// 集合名稱
     /// </summary>
     [JsonPropertyName("collection_name")]
@@ -26,7 +32,7 @@ public class TextPoint
     public required string Text { get; set; }
 
     /// <summary>
-    /// 可選的 ID (Python 端默認 null)
+    /// ID
     /// </summary>
     [JsonPropertyName("id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
