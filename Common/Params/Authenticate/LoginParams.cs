@@ -1,6 +1,6 @@
 ﻿using Common.Dto;
 
-namespace Common.Params;
+namespace Common.Params.Authenticate;
 
 public class LoginParams : AuthenticateDto
 {

@@ -1,5 +1,5 @@
 ﻿using Common.Dto;
-using Common.Params;
+using Common.Params.Chat;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interfaces;

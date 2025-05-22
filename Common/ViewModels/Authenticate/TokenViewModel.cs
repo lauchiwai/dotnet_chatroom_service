@@ -1,4 +1,4 @@
-﻿namespace Common.ViewModels;
+﻿namespace Common.ViewModels.Authenticate;
 
 public class TokenViewModel
 {

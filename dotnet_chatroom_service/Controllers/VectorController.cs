@@ -1,4 +1,4 @@
-﻿using Common.Params;
+﻿using Common.Params.Vector;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interfaces;

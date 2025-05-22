@@ -1,5 +1,5 @@
 ﻿using Common.Dto;
-using Common.Params;
+using Common.Params.Chat;
 
 namespace Services.Interfaces;
 

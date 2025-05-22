@@ -1,15 +1,21 @@
 ﻿using Common.Dto;
 using System.Text.Json.Serialization;
 
-namespace Common.Params;
+namespace Common.Params.Chat;
 
-public class SummaryParams: ChatBaseDto
+public class ChatParams: ChatBaseDto
 {
+    /// <summary>
+    /// 新訊息
+    /// </summary>
+    [JsonPropertyName("message")]
+    public required string Message { get; set; }
+
     /// <summary>
     /// 向量數據集名稱
     /// </summary>
     [JsonPropertyName("collection_name")]
-    public string CollectionName { get; set; } = "articles";
+    public string? CollectionName { get; set; }
 
     /// <summary>
     /// 文章 id

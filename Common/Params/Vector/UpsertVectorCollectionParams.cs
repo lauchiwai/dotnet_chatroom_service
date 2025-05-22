@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Common.Params;
+namespace Common.Params.Vector;
 
 public class UpsertVectorCollectionParams
 {

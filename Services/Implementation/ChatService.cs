@@ -2,8 +2,8 @@
 using Common.Helper.Implementation;
 using Common.Helper.Interface;
 using Common.Models;
-using Common.Params;
-using Common.ViewModels;
+using Common.Params.Chat;
+using Common.ViewModels.Chat;
 using Microsoft.EntityFrameworkCore;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;

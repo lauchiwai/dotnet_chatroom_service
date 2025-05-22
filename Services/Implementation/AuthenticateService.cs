@@ -1,7 +1,7 @@
 ﻿using Common.Dto;
 using Common.Models;
-using Common.Params;
-using Common.ViewModels;
+using Common.Params.Authenticate;
+using Common.ViewModels.Authenticate;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;

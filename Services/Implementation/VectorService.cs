@@ -1,6 +1,6 @@
 ﻿using Common.Dto;
 using Common.Helper.Interface;
-using Common.Params;
+using Common.Params.Vector;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;

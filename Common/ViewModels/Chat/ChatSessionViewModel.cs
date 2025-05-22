@@ -1,4 +1,4 @@
-﻿namespace Common.ViewModels;
+﻿namespace Common.ViewModels.Chat;
 
 public class ChatSessionViewModel
 {
