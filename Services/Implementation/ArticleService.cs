@@ -34,7 +34,91 @@ public class ArticleService : IArticleService
         _outboxMessageRepository = outboxMessageRepository;
     }
 
-    public async Task SteamGenerateArticle(Stream outputStream, ArticleGenerationParams articleGenerationParams, CancellationToken cancellationToken)
+    public async Task<ResultDTO> GenerateArticle(GenerateArticleParams generateArticleParams)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var newArticle = new Article()
+            {
+                UserId = userInfo.UserId,
+                ArticleTitle = generateArticleParams.ArticleTitle,
+                ArticleContent = generateArticleParams.ArticleContent,
+                UpdateTime = DateTime.UtcNow
+            };
+
+            await _articleRepository.AddAsync(newArticle);
+            await _articleRepository.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+    public async Task<ResultDTO> GetArticle(int articleId)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var article = await _articleRepository.GetQueryable()
+              .Where(a => a.ArticleID == articleId && a.UserId == userInfo.UserId)
+              .Select(a => new ArticleViewModel()
+              {
+                  ArticleId = a.ArticleID,
+                  ArticleContent = a.ArticleContent,
+              }).FirstOrDefaultAsync();
+
+            if (article == null)
+            {
+                result.IsSuccess = false;
+                result.Message = "Article not found.";
+                return result;
+            }
+
+            result.Data = article;
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+    public async Task<ResultDTO> GetArticleList()
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var articleList = await _articleRepository.GetQueryable()
+              .Where(a => a.UserId == userInfo.UserId)
+              .OrderByDescending(x => x.UpdateTime)
+              .Select(a => new ArticleViewModel()
+              {
+                  ArticleId = a.ArticleID,
+                  ArticleContent = a.ArticleContent,
+              }).ToListAsync();
+
+            result.Data = articleList;
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+    public async Task SteamFeatchAiArticle(Stream outputStream, FetchAiArticleParams fetchAiArticleParams, CancellationToken cancellationToken)
     {
         try
         {

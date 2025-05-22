@@ -14,14 +14,24 @@ public partial class MyDbContext : DbContext
     {
     }
 
-    public virtual DbSet<Authenticate> Authenticates { get; set; }
+    public virtual DbSet<Article> Article { get; set; }
 
-    public virtual DbSet<ChatSession> ChatSessions { get; set; }
+    public virtual DbSet<Authenticate> Authenticate { get; set; }
+
+    public virtual DbSet<ChatSession> Chat_Session { get; set; }
 
     public virtual DbSet<OutboxMessage> OutboxMessage { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Article>(entity =>
+        {
+            entity.HasKey(e => e.ArticleID).HasName("PK__Article__9C6270C8092B52A3");
+            entity.Property(e => e.ArticleTitle).HasMaxLength(50);
+            entity.Property(e => e.UpdateTime).HasColumnType("datetime");
+            entity.Property(e => e.UserId).HasMaxLength(50);
+        });
+
         modelBuilder.Entity<Authenticate>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Authenti__3213E83FF2FA5720");
