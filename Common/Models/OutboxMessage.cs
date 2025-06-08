@@ -1,5 +1,4 @@
 ﻿namespace Common.Models;
-
 public partial class OutboxMessage
 {
     /// <summary>

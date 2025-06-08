@@ -18,12 +18,18 @@ public partial class Article
     public string ArticleContent { get; set; } = null!;
 
     /// <summary>
-    /// 使用者id
+    /// 擁有者id
     /// </summary>
-    public string UserId { get; set; } = null!;
+    public int OwnerId { get; set; }
 
     /// <summary>
     /// 更新時間
     /// </summary>
     public DateTime UpdateTime { get; set; }
+
+    public virtual ICollection<Article_Chat_Session> Article_Chat_Session { get; set; } = new List<Article_Chat_Session>();
+
+    public virtual ICollection<Article_User> Article_User { get; set; } = new List<Article_User>();
+
+    public virtual Authenticate Owner { get; set; } = null!;
 }

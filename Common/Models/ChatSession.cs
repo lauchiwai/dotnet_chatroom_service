@@ -23,7 +23,7 @@ public partial class ChatSession
     /// 使用者編號
     /// </summary>
     [StringLength(50)]
-    public string UserId { get; set; } = null!;
+    public int UserId { get; set; }
 
     /// <summary>
     /// 更新時間

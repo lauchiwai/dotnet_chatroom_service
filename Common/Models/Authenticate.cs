@@ -43,4 +43,12 @@ public partial class Authenticate
     /// </summary>
     [Column("refresh_token_expiry_time", TypeName = "datetime")]
     public DateTime? RefreshTokenExpiryTime { get; set; }
+
+    public virtual ICollection<Article> Article { get; set; } = new List<Article>();
+
+    public virtual ICollection<Article_User> Article_User { get; set; } = new List<Article_User>();
+
+    public virtual ICollection<Chat_Session> Chat_Session { get; set; } = new List<Chat_Session>();
+
+    public virtual ICollection<UserWords> UserWords { get; set; } = new List<UserWords>();
 }
