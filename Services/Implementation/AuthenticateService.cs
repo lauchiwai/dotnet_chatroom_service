@@ -57,6 +57,7 @@ public class AuthenticateService : IAuthenticateService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 500;
             result.Message = ex.Message;
         }
 
@@ -87,6 +88,7 @@ public class AuthenticateService : IAuthenticateService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 500;
             result.Message = ex.Message;
         }
 
@@ -133,6 +135,7 @@ public class AuthenticateService : IAuthenticateService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 500;
             result.Message = ex.Message;
         }
 
@@ -173,6 +176,7 @@ public class AuthenticateService : IAuthenticateService
         catch (Exception ex)
         {
             result.IsSuccess = false;
+            result.Code = 500;
             result.Message = ex.Message;
         }
         return result;

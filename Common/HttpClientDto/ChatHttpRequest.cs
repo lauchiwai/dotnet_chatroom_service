@@ -1,9 +1,9 @@
 ﻿using Common.Dto;
 using System.Text.Json.Serialization;
 
-namespace Common.Params.Chat;
+namespace Common.HttpClientDto;
 
-public class ChatParams: ChatBaseDto
+public class ChatHttpRequest : ChatBaseDto
 {
     /// <summary>
     /// 新訊息
@@ -22,4 +22,10 @@ public class ChatParams: ChatBaseDto
     /// </summary>
     [JsonPropertyName("article_id")]
     public int? ArticleId { get; set; }
+
+    /// <summary>
+    /// 使用者 id
+    /// </summary>
+    [JsonPropertyName("user_id")]
+    public required int UserId { get; set; }
 }

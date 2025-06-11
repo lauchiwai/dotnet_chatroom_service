@@ -13,7 +13,7 @@ public class JwtUserInfo
     /// <summary>
     /// 使用者編號
     /// </summary>
-    public string UserId { get; set; }
+    public int UserId { get; set; }
 
     /// <summary>
     /// 使用者名稱

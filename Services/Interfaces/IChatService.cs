@@ -8,9 +8,16 @@ public interface IChatService
     /// <summary>
     /// 創建聊天會話
     /// </summary>
-    /// <param name="userTimeZoneId"></param>
     /// <returns></returns>
-    public Task<ResultDTO> GenerateChatSession(string userTimeZoneId = "Asia/Hong_Kong");
+    public Task<ResultDTO> GenerateChatSession();
+
+
+    /// <summary>
+    /// 創建 文章相關的聊天會話
+    /// </summary>
+    /// <param name="articleId"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> GenerateRagChatSession(int articleId);
 
     /// <summary>
     /// 獲取該用戶的所有聊天會話
@@ -19,38 +26,39 @@ public interface IChatService
     public Task<ResultDTO> GetChatSessionList();
 
     /// <summary>
+    /// 獲取該用戶的文章 RAG 對話
+    /// </summary>
+    /// <param name="articleId"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> GetRagChatSessionListByArticleId(int articleId);
+
+    /// <summary>
     /// 驗證 聊天室權限 
     /// </summary>
     /// <param name="sessionId"></param>
     /// <returns></returns>
-    public Task<ResultDTO> ValidateChatPermission(string sessionId);
-
-    /// <summary>
-    /// 測試 heartbeat
-    /// </summary>
-    /// <returns></returns>
-    public Task<ResultDTO> CheackChatHttpClientHealth();
+    public Task<ResultDTO> ValidateChatPermission(int sessionId);
 
     /// <summary>
     /// 獲取對話歷史記錄
     /// </summary>
     /// <param name="sessionId"></param>
     /// <returns></returns>
-    public Task<ResultDTO> GetChatHistory(string sessionId);
+    public Task<ResultDTO> GetChatHistory(int sessionId);
 
     /// <summary>
     /// 更新上一次使用這個聊天室的時間
     /// </summary>
     /// <param name="sessionId"></param>
     /// <returns></returns>
-    public Task<ResultDTO> RefreshChatSessionTime(string sessionId);
+    public Task<ResultDTO> RefreshChatSessionTime(int sessionId);
 
     /// <summary>
     /// 刪除對話
     /// </summary>
     /// <param name="sessionId"></param>
     /// <returns></returns>
-    public Task<ResultDTO> DeleteChatData(string sessionId);
+    public Task<ResultDTO> DeleteChatData(int sessionId);
 
     /// <summary>
     ///  sse 聊天功能
@@ -69,5 +77,4 @@ public interface IChatService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task SummaryStream(Stream outputStream, SummaryParams summaryParams, CancellationToken cancellationToken);
-    
 }

@@ -1,6 +1,7 @@
 ﻿using Common.Dto;
 using Common.Helper.Implementation;
 using Common.Helper.Interface;
+using Common.HttpClientDto;
 using Common.Models;
 using Common.Params.Chat;
 using Common.ViewModels.Chat;
@@ -20,13 +21,17 @@ public class ChatService : IChatService
     private readonly IApiClient _httpClient;
     private readonly IStreamClient _streamClient;
     private readonly IRepository<ChatSession> _chatSessionRepository;
+    private readonly IRepository<Article_Chat_Session> _articleChatSessionRepository;
     private readonly IRepository<OutboxMessage> _outboxMessageRepository;
+    private readonly string _userTimeZoneId;
+
     public ChatService(
         MyDbContext context,
         IUserHelper jwtHelper,
         IApiClient httpClient,
         IStreamClient streamClient,
         IRepository<ChatSession> chatSessionRepository,
+        IRepository<Article_Chat_Session> articleChatSessionRepository,
         IRepository<OutboxMessage> outboxMessageRepository)
     {
         _context = context;
@@ -34,21 +39,21 @@ public class ChatService : IChatService
         _httpClient = httpClient;
         _streamClient = streamClient;
         _chatSessionRepository = chatSessionRepository;
+        _articleChatSessionRepository = articleChatSessionRepository;
         _outboxMessageRepository = outboxMessageRepository;
+        _userTimeZoneId = "Asia/Hong_Kong";
     }
 
-    public async Task<ResultDTO> GenerateChatSession(string userTimeZoneId = "Asia/Hong_Kong")
+    public async Task<ResultDTO> GenerateChatSession()
     {
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
-            var userTimeZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
-            var userLocalTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, userTimeZone);
             var newChatSession = new ChatSession()
             {
                 UserId = userInfo.UserId,
-                SessionName = userLocalTime.ToString("yyyy年MM月dd日HH時mm分", CultureInfo.InvariantCulture),
+                SessionName = GenerateChatSessionName(),
                 UpdateTime = DateTime.UtcNow
             };
 
@@ -66,11 +71,63 @@ public class ChatService : IChatService
         catch (Exception ex)
         {
             result.IsSuccess = false;
-            result.Code = 400;
+            result.Code = 500;
             result.Message = ex.Message;
         }
 
         return result;
+    }
+
+    public async Task<ResultDTO> GenerateRagChatSession(int articleId)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+
+            var newChatSession = new ChatSession
+            {
+                UserId = userInfo.UserId,
+                SessionName = GenerateChatSessionName(),
+                UpdateTime = DateTime.UtcNow
+            };
+
+            var articleChatSession = new Article_Chat_Session
+            {
+                ArticleId = articleId,
+                Session = newChatSession
+            };
+
+            _context.Article_Chat_Session.Add(articleChatSession);
+            await _context.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+
+            result.Data = new ChatSessionViewModel()
+            {
+                SessionId = articleChatSession.Session.SessionId,
+                SessionName = articleChatSession.Session.SessionName
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            result.IsSuccess = false;
+            result.Code = 500;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+
+    public string GenerateChatSessionName()
+    {
+        var userTimeZone = TimeZoneInfo.FindSystemTimeZoneById(_userTimeZoneId);
+        var userLocalTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, userTimeZone);
+        return userLocalTime.ToString("yyyy年MM月dd日HH時mm分", CultureInfo.InvariantCulture);
     }
 
     public async Task<ResultDTO> GetChatSessionList()
@@ -93,26 +150,50 @@ public class ChatService : IChatService
         catch (Exception ex)
         {
             result.IsSuccess = false;
-            result.Code = 400;
+            result.Code = 500;
             result.Message = ex.Message;
         }
 
         return result;
     }
 
-    public async Task<ResultDTO> CheackChatHttpClientHealth()
+    public async Task<ResultDTO> GetRagChatSessionListByArticleId(int articleId)
     {
-        var response = await _httpClient.GetAsync<ChatServiceHttpClientResultDto>("health");
-        return new ResultDTO()
+        var result = new ResultDTO() { IsSuccess = true };
+        try
         {
-            IsSuccess = response.success,
-            Code = response.success ? 200 : 400,
-            Data = response.data,
-            Message = response.message
-        };
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+
+            var chatSessionList = await _chatSessionRepository.GetQueryable()
+                .Where(cs => cs.UserId == userInfo.UserId)
+                .Join(
+                    _context.Article_Chat_Session,
+                    cs => cs.SessionId,
+                    acs => acs.SessionID,
+                    (cs, acs) => new { cs, acs }
+                )
+                .Where(x => x.acs.ArticleId == articleId)
+                .OrderByDescending(x => x.cs.UpdateTime)
+                .Select(x => new ChatSessionViewModel()
+                {
+                    SessionId = x.cs.SessionId,
+                    SessionName = x.cs.SessionName ?? ""
+                })
+                .ToListAsync();
+
+            result.Data = chatSessionList;
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Code = 500;
+            result.Message = ex.Message;
+        }
+        return result;
     }
 
-    public async Task<ResultDTO> ValidateChatPermission(string sessionId)
+
+    public async Task<ResultDTO> ValidateChatPermission(int sessionId)
     {
         var result = new ResultDTO() { IsSuccess = true };
         try
@@ -120,7 +201,7 @@ public class ChatService : IChatService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
 
             var chatSession = await _chatSessionRepository.GetQueryable()
-               .FirstOrDefaultAsync(a => a.SessionId.ToString() == sessionId);
+               .FirstOrDefaultAsync(a => a.SessionId == sessionId);
 
             if (chatSession == null)
             {
@@ -141,49 +222,63 @@ public class ChatService : IChatService
         catch (Exception ex)
         {
             result.IsSuccess = false;
-            result.Code = 400;
+            result.Code = 500;
             result.Message = ex.Message;
         }
 
         return result;
     }
 
-    public async Task<ResultDTO> GetChatHistory(string sessionId)
+    public async Task<ResultDTO> GetChatHistory(int sessionId)
     {
         var response = await _httpClient.GetAsync<ChatServiceHttpClientResultDto>($"Chat/getChatHistoryBySessionId/{sessionId}");
         return new ResultDTO()
         {
             IsSuccess = response.success,
-            Code = response.success ? 200 : 400,
+            Code = response.success ? 200 : 500,
             Data = response.data,
             Message = response.message
         };
     }
 
-    public async Task<ResultDTO> DeleteChatData(string sessionId)
+    public async Task<ResultDTO> DeleteChatData(int sessionId)
     {
         var result = new ResultDTO() { IsSuccess = true };
+
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
-            var chatSession = await _chatSessionRepository.GetQueryable()
-              .FirstOrDefaultAsync(a => a.SessionId.ToString() == sessionId);
+            var articleSessions = await _context.Article_Chat_Session
+               .Where(acs => acs.SessionID == sessionId)
+               .ToListAsync();
 
+
+            if (articleSessions.Any())
+            {
+                _context.Article_Chat_Session.RemoveRange(articleSessions);
+            }
+
+            var chatSession = await _context.ChatSession.FindAsync(sessionId);
             if (chatSession == null)
             {
                 result.IsSuccess = false;
                 result.Code = 404;
+                result.Message = "chat session does not exist";
                 return result;
             }
 
-            _chatSessionRepository.Delete(chatSession);
+            _context.ChatSession.Remove(chatSession);
 
             var outboxMessage = new OutboxMessage
             {
                 Id = Guid.NewGuid().ToString(),
                 EventType = "ChatSessionDeleted",
-                Payload = JsonSerializer.Serialize(new { SessionId = sessionId }),
+                Payload = JsonSerializer.Serialize(new
+                {
+                    SessionId = sessionId,
+                    DeletedAt = DateTime.UtcNow
+                }),
                 CreatedTime = DateTime.UtcNow,
                 IsPublished = false,
                 RetryCount = 0
@@ -191,27 +286,27 @@ public class ChatService : IChatService
 
             _outboxMessageRepository.Add(outboxMessage);
 
-            await _chatSessionRepository.SaveChangesAsync();
+            await _context.SaveChangesAsync();
             await transaction.CommitAsync();
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
             result.IsSuccess = false;
-            result.Code = 400;
-            result.Message = ex.Message;
+            result.Code = 500;
+            result.Message = $"delete fail: {ex.Message}";
         }
 
         return result;
     }
 
-    public async Task<ResultDTO> RefreshChatSessionTime(string sessionId)
+    public async Task<ResultDTO> RefreshChatSessionTime(int sessionId)
     {
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
             var chatSession = await _chatSessionRepository.GetQueryable()
-               .Where(a => a.SessionId.ToString() == sessionId)
+               .Where(a => a.SessionId == sessionId)
                .FirstOrDefaultAsync();
 
             if (chatSession == null)
@@ -230,7 +325,7 @@ public class ChatService : IChatService
         {
             result.IsSuccess = false;
             result.Message = ex.Message;
-            result.Code = 400;
+            result.Code = 500;
         }
 
         return result;
@@ -247,9 +342,19 @@ public class ChatService : IChatService
                 return;
             }
 
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var chatHttpRequest = new ChatHttpRequest()
+            {
+                UserId = userInfo.UserId,
+                ArticleId = chatParams.ArticleId,
+                ChatSessionId = chatParams.ChatSessionId,
+                CollectionName = chatParams.CollectionName,
+                Message = chatParams.Message,
+            };
+
             await _streamClient.PostStreamAsync(
                 "/Chat/chat_stream",
-                chatParams,
+                chatHttpRequest,
                 outputStream,
                 cancellationToken
             );
@@ -271,9 +376,19 @@ public class ChatService : IChatService
                 return;
             }
 
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var summaryHttpRequest = new SummaryHttpRequest()
+            {
+                UserId = userInfo.UserId,
+                ArticleId = summaryParams.ArticleId,
+                ChatSessionId = summaryParams.ChatSessionId,
+                CollectionName = summaryParams.CollectionName,
+            };
+
+
             await _streamClient.PostStreamAsync(
                 "/Chat/summary_stream",
-                summaryParams,
+                summaryHttpRequest,
                 outputStream,
                 cancellationToken
             );
@@ -288,7 +403,7 @@ public class ChatService : IChatService
     {
         var errorEvent = new
         {
-            code = 400,
+            code = 500,
             message = result.Message,
             eventType = "permission_denied"
         };
@@ -302,7 +417,7 @@ public class ChatService : IChatService
     {
         var errorEvent = new
         {
-            code = 400,
+            code = 500,
             message,
             eventType = "system_error"
         };

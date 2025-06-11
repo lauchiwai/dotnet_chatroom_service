@@ -47,7 +47,7 @@ public class ArticleService : IArticleService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var newArticle = new Article()
             {
-                UserId = userInfo.UserId,
+                OwnerId = userInfo.UserId,
                 ArticleTitle = generateArticleParams.ArticleTitle,
                 ArticleContent = generateArticleParams.ArticleContent,
                 UpdateTime = DateTime.UtcNow
@@ -103,7 +103,7 @@ public class ArticleService : IArticleService
         {
             await transaction.RollbackAsync();
             result.IsSuccess = false;
-            result.Code = 400;
+            result.Code = 500;
             result.Message = ex.Message;
         }
 
@@ -126,7 +126,7 @@ public class ArticleService : IArticleService
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var article = await _articleRepository.GetQueryable()
-              .Where(a => a.ArticleID == articleId && a.UserId == userInfo.UserId)
+              .Where(a => a.ArticleID == articleId && a.OwnerId == userInfo.UserId)
               .Select(a => new ArticleViewModel()
               {
                   ArticleId = a.ArticleID,
@@ -146,7 +146,7 @@ public class ArticleService : IArticleService
         catch (Exception ex)
         {
             result.IsSuccess = false;
-            result.Code = 400;
+            result.Code = 500;
             result.Message = ex.Message;
         }
 
@@ -160,7 +160,7 @@ public class ArticleService : IArticleService
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var articleList = await _articleRepository.GetQueryable()
-              .Where(a => a.UserId == userInfo.UserId)
+              .Where(a => a.OwnerId == userInfo.UserId)
               .OrderByDescending(x => x.UpdateTime)
               .Select(a => new ArticleListViewModel()
               {
@@ -173,7 +173,7 @@ public class ArticleService : IArticleService
         catch (Exception ex)
         {
             result.IsSuccess = false;
-            result.Code = 400;
+            result.Code = 500;
             result.Message = ex.Message;
         }
 

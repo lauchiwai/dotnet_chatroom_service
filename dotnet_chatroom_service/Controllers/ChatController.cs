@@ -19,9 +19,21 @@ public class ChatController : ControllerBase
 
     [HttpPost("GenerateChatSession")]
     [Authorize]
-    public async Task<IActionResult> GenerateChatSession(string userTimeZoneId = "Asia/Hong_Kong")
+    public async Task<IActionResult> GenerateChatSession()
     {
-        var result = await _chatService.GenerateChatSession(userTimeZoneId);
+        var result = await _chatService.GenerateChatSession();
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpPost("GenerateRagChatSession/{articleId}")]
+    [Authorize]
+    public async Task<IActionResult> GenerateRagChatSession(int articleId)
+    {
+        var result = await _chatService.GenerateRagChatSession(articleId);
 
         if (result.IsSuccess)
             return Ok(result);
@@ -41,10 +53,11 @@ public class ChatController : ControllerBase
             return BadRequest(result);
     }
 
-    [HttpGet("CheackChatHttpClientHealth")]
-    public async Task<IActionResult> CheackChatHttpClientHealth()
+    [HttpGet("GetRagChatSessionListByArticleId/{articleId}")]
+    [Authorize]
+    public async Task<IActionResult> GetRagChatSessionListByArticleId(int articleId)
     {
-        var result = await _chatService.CheackChatHttpClientHealth();
+        var result = await _chatService.GetRagChatSessionListByArticleId(articleId);
 
         if (result.IsSuccess)
             return Ok(result);
@@ -54,7 +67,7 @@ public class ChatController : ControllerBase
 
     [HttpGet("GetChatHistory/{sessionId}")]
     [Authorize]
-    public async Task<IActionResult> GetChatHistory(string sessionId)
+    public async Task<IActionResult> GetChatHistory(int sessionId)
     {
         var validateResult = await _chatService.ValidateChatPermission(sessionId);
         if (!validateResult.IsSuccess)
@@ -71,7 +84,7 @@ public class ChatController : ControllerBase
 
     [HttpDelete("DeleteChatData/{sessionId}")]
     [Authorize]
-    public async Task<IActionResult> DeleteChatData(string sessionId)
+    public async Task<IActionResult> DeleteChatData(int sessionId)
     {
         var validateResult = await _chatService.ValidateChatPermission(sessionId);
         if (!validateResult.IsSuccess)
@@ -88,7 +101,7 @@ public class ChatController : ControllerBase
 
     [HttpPost("RefreshChatSessionTime")]
     [Authorize]
-    public async Task<IActionResult> RefreshChatSessionTime(string sessionId)
+    public async Task<IActionResult> RefreshChatSessionTime(int sessionId)
     {
         var result = await _chatService.RefreshChatSessionTime(sessionId);
 
