@@ -16,6 +16,17 @@ public class VectorService : IVectorService
         _httpClient = httpClient;
     }
 
+    public async Task<ResultDTO> CheckVectorDataExist(CheckVectorDataExistParams checkVectorDataExistParams)
+    {
+        var response = await _httpClient.PostAsync<CheckVectorDataExistParams, ChatServiceHttpClientResultDto>("Vector/check_vector_data_exist", checkVectorDataExistParams);
+        return new ResultDTO()
+        {
+            IsSuccess = response.success,
+            Data = response.data,
+            Message = response.message
+        };
+    }
+
     public async Task<ResultDTO> GetAllVectorCollections()
     {
         var response = await _httpClient.GetAsync<ChatServiceHttpClientResultDto>("Vector/get_collections");
@@ -44,7 +55,7 @@ public class VectorService : IVectorService
         return new ResultDTO()
         {
             IsSuccess = response.success,
-            Code = response.success ? 200 : 400,
+            Code = response.success ? 200 : 500,
             Data = response.data,
             Message = response.message
         };

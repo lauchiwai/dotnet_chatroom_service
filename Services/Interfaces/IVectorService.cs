@@ -6,6 +6,13 @@ namespace Services.Interfaces;
 public interface IVectorService
 {
     /// <summary>
+    /// 檢查向量資料是否存在
+    /// </summary>
+    /// <param name="checkVectorDataExistParams"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> CheckVectorDataExist(CheckVectorDataExistParams checkVectorDataExistParams);
+
+    /// <summary>
     /// 創建 向量集合
     /// </summary>
     /// <param name="generateCollectionParams"></param>

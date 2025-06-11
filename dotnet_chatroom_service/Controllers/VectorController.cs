@@ -63,4 +63,16 @@ public class VectorController : ControllerBase
         else
             return BadRequest(result);
     }
+
+    [HttpPost("CheckVectorDataExist")]
+    [Authorize]
+    public async Task<IActionResult> CheckVectorDataExist(CheckVectorDataExistParams checkVectorDataExistParams)
+    {
+        var result = await _vectorService.CheckVectorDataExist(checkVectorDataExistParams);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
 }
