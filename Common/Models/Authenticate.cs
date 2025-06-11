@@ -48,7 +48,7 @@ public partial class Authenticate
 
     public virtual ICollection<Article_User> Article_User { get; set; } = new List<Article_User>();
 
-    public virtual ICollection<Chat_Session> Chat_Session { get; set; } = new List<Chat_Session>();
+    public virtual ICollection<ChatSession> Chat_Session { get; set; } = new List<ChatSession>();
 
     public virtual ICollection<UserWords> UserWords { get; set; } = new List<UserWords>();
 }

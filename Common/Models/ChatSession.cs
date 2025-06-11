@@ -30,4 +30,8 @@ public partial class ChatSession
     /// </summary>
     [Column(TypeName = "datetime")]
     public DateTime UpdateTime { get; set; }
+
+    public virtual Article_Chat_Session? Article_Chat_Session { get; set; }
+
+    public virtual Authenticate User { get; set; } = null!;
 }

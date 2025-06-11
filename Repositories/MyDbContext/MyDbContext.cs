@@ -22,7 +22,7 @@ public partial class MyDbContext : DbContext
 
     public virtual DbSet<Authenticate> Authenticate { get; set; }
 
-    public virtual DbSet<Chat_Session> Chat_Session { get; set; }
+    public virtual DbSet<ChatSession> ChatSession { get; set; }
 
     public virtual DbSet<OutboxMessage> OutboxMessage { get; set; }
 
@@ -89,9 +89,9 @@ public partial class MyDbContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<Chat_Session>(entity =>
+        modelBuilder.Entity<ChatSession>(entity =>
         {
-            entity.HasKey(e => e.SessionID).HasName("PK__Chat_Ses__C9F4927095D5C284");
+            entity.HasKey(e => e.SessionId).HasName("PK__Chat_Ses__C9F4927095D5C284");
 
             entity.Property(e => e.SessionName).HasMaxLength(50);
             entity.Property(e => e.UpdateTime).HasColumnType("datetime");

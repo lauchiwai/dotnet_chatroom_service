@@ -8,5 +8,5 @@ public partial class Article_Chat_Session
 
     public virtual Article Article { get; set; } = null!;
 
-    public virtual Chat_Session Session { get; set; } = null!;
+    public virtual ChatSession Session { get; set; } = null!;
 }
