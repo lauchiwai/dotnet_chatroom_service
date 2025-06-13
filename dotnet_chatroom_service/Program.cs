@@ -48,7 +48,8 @@ builder.Services.AddCors(options =>
             policy.WithOrigins(
                 "https://oniind244.online",
                 "http://localhost:5173",
-                "http://localhost:11116")
+                "http://localhost:11116",
+                "http://192.168.0.171:5173")
             .AllowAnyHeader()
             .AllowAnyMethod();
         });
