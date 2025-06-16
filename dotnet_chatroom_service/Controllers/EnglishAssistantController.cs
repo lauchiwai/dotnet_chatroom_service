@@ -17,6 +17,40 @@ public class EnglishAssistantController : ControllerBase
         _englishAssistantService = englishAssistantService;
     }
 
+    [HttpPost("WordTips")]
+    [Authorize]
+    public async Task<IActionResult> WordTips([FromBody] WordAssistanParams fetchAiArticleParams)
+    {
+        return new StreamedResult(async (outputStream, cancellationToken) =>
+        {
+            try
+            {
+                await _englishAssistantService.WordTips(outputStream, fetchAiArticleParams, cancellationToken);
+            }
+            finally
+            {
+                outputStream.Close();
+            }
+        }, "text/event-stream");
+    }
+
+    [HttpPost("WordTranslate")]
+    [Authorize]
+    public async Task<IActionResult> WordTranslate([FromBody] WordAssistanParams fetchAiArticleParams)
+    {
+        return new StreamedResult(async (outputStream, cancellationToken) =>
+        {
+            try
+            {
+                await _englishAssistantService.WordTranslate(outputStream, fetchAiArticleParams, cancellationToken);
+            }
+            finally
+            {
+                outputStream.Close();
+            }
+        }, "text/event-stream");
+    }
+
     [HttpPost("WordAssistan")]
     [Authorize]
     public async Task<IActionResult> WordAssistan([FromBody] WordAssistanParams fetchAiArticleParams)

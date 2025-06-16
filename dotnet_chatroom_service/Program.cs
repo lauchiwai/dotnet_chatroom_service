@@ -65,7 +65,7 @@ builder.Services.Scan(scan => scan
     .AddClasses(classes => classes
         .Where(t =>
             (t.Name.EndsWith("Service") || t.Name.EndsWith("Helper")) &&
-            !typeof(IHostedService).IsAssignableFrom(t) // 排除实现了 IHostedService 的类
+            !typeof(IHostedService).IsAssignableFrom(t) 
         )
     )
     .UsingRegistrationStrategy(RegistrationStrategy.Skip)

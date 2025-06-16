@@ -33,6 +33,41 @@ public class EnglishAssistantService : IEnglishAssistantService
         }
     }
 
+    public async Task WordTranslate(Stream outputStream, WordAssistanParams param, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _streamClient.PostStreamAsync(
+                "/EnglishAssistant/stream_english_word_translate",
+                param,
+                outputStream,
+                cancellationToken
+            );
+        }
+        catch (Exception ex)
+        {
+            await SendErrorEvent(outputStream, ex.Message);
+        }
+    }
+
+
+    public async Task WordTips(Stream outputStream, WordAssistanParams param, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _streamClient.PostStreamAsync(
+                "/EnglishAssistant/stream_english_word_tips",
+                param,
+                outputStream,
+                cancellationToken
+            );
+        }
+        catch (Exception ex)
+        {
+            await SendErrorEvent(outputStream, ex.Message);
+        }
+    }
+
     public async Task TextLinguisticAssistant(Stream outputStream, TextLinguisticAssistantParams param, CancellationToken cancellationToken)
     {
         try
