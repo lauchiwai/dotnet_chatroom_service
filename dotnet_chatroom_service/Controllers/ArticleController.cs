@@ -60,7 +60,7 @@ public class ArticleController : ControllerBase
 
     [HttpDelete("DeleteArticle/{articleId}")]
     [Authorize]
-    public async Task<IActionResult> DeleteChatData(string articleId)
+    public async Task<IActionResult> DeleteArticle(int articleId)
     {
         var result = await _articleService.DeleteArticle(articleId);
         if (result.IsSuccess)
@@ -86,6 +86,30 @@ public class ArticleController : ControllerBase
     public async Task<IActionResult> GetArticleList()
     {
         var result = await _articleService.GetArticleList();
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpPost("UpdateArticleReadingProgress")]
+    [Authorize]
+    public async Task<IActionResult> UpdateArticleReadingProgress(UpdateArticleReadingProgressParams progressParams)
+    {
+        var result = await _articleService.UpdateArticleReadingProgress(progressParams);
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpGet("GetArticleReadingProgress/{articleId}")]
+    [Authorize]
+    public async Task<IActionResult> GetArticleReadingProgress(int articleId)
+    {
+        var result = await _articleService.GetArticleReadingProgress(articleId);
 
         if (result.IsSuccess)
             return Ok(result);

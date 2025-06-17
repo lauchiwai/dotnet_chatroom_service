@@ -89,7 +89,7 @@ public class EnglishAssistantService : IEnglishAssistantService
     {
         var errorEvent = new
         {
-            code = 400,
+            code = 500,
             message,
             eventType = "system_error"
         };

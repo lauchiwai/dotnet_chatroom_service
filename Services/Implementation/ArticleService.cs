@@ -21,7 +21,9 @@ public class ArticleService : IArticleService
     private readonly IUserHelper _jwtHelper;
     private readonly IStreamClient _streamClient;
     private readonly IRepository<Article> _articleRepository;
+    private readonly IRepository<Article_User> _articleUserRepository;
     private readonly IRepository<OutboxMessage> _outboxMessageRepository;
+
 
     public ArticleService(
         MyDbContext context,
@@ -29,6 +31,7 @@ public class ArticleService : IArticleService
         IUserHelper jwtHelper,
         IStreamClient streamClient,
         IRepository<Article> articleRepository,
+        IRepository<Article_User> articleUserRepository,
         IRepository<OutboxMessage> outboxMessageRepository)
     {
         _context = context;
@@ -36,6 +39,7 @@ public class ArticleService : IArticleService
         _jwtHelper = jwtHelper;
         _streamClient = streamClient;
         _articleRepository = articleRepository;
+        _articleUserRepository = articleUserRepository;
         _outboxMessageRepository = outboxMessageRepository;
     }
 
@@ -58,6 +62,7 @@ public class ArticleService : IArticleService
         }
         catch (Exception ex)
         {
+            result.Code = 500;
             result.IsSuccess = false;
             result.Message = ex.Message;
         }
@@ -65,7 +70,88 @@ public class ArticleService : IArticleService
         return result;
     }
 
-    public async Task<ResultDTO> DeleteArticle(string articleId)
+    public async Task<ResultDTO> UpdateArticleReadingProgress(UpdateArticleReadingProgressParams progressParams)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var association = await _articleUserRepository
+                 .GetQueryable()
+                 .FirstOrDefaultAsync(au =>
+                     au.ArticleId == progressParams.ArticleId &&
+                     au.UserId == userInfo.UserId
+                 );
+
+            if (association != null)
+            {
+                association.Progress = progressParams.Progress;
+            }
+            else
+            {
+                var newArticleUser = new Article_User
+                {
+                    UserId = userInfo.UserId,
+                    ArticleId = progressParams.ArticleId,
+                    Progress = progressParams.Progress
+                };
+                await _articleUserRepository.AddAsync(newArticleUser);
+            }
+            
+            await _articleUserRepository.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            result.Code = 500;
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+    public async Task<ResultDTO> GetArticleReadingProgress(int articleId)
+    {
+
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var association = await _articleUserRepository
+                 .GetQueryable()
+                 .FirstOrDefaultAsync(au =>
+                     au.ArticleId == articleId &&
+                     au.UserId == userInfo.UserId
+                 );
+
+            if (association == null) {
+                result.Data =  new ArticleReadingProgressViewmodel
+                {
+                    ArticleId = articleId,
+                    Progress = 0
+                };
+
+            } else
+            {
+
+                result.Data = new ArticleReadingProgressViewmodel
+                {
+                    ArticleId = association.ArticleId,
+                    Progress = association.Progress
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            result.Code = 500;
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+    public async Task<ResultDTO> DeleteArticle(int articleId)
     {
         var result = new ResultDTO() { IsSuccess = true };
         using var transaction = await _context.Database.BeginTransactionAsync();
@@ -73,7 +159,7 @@ public class ArticleService : IArticleService
         try
         {
             var article = await _articleRepository.GetQueryable()
-              .FirstOrDefaultAsync(a => a.ArticleID.ToString() == articleId);
+              .FirstOrDefaultAsync(a => a.ArticleID == articleId);
 
             if (article == null)
             {
@@ -201,7 +287,7 @@ public class ArticleService : IArticleService
     {
         var errorEvent = new
         {
-            code = 400,
+            code = 500,
             message,
             eventType = "system_error"
         };

@@ -26,7 +26,7 @@ public interface IArticleService
     /// </summary>
     /// <param name="articleId"></param>
     /// <returns></returns>
-    public Task<ResultDTO> DeleteArticle(string articleId);
+    public Task<ResultDTO> DeleteArticle(int articleId);
 
     /// <summary>
     ///  文章向量化
@@ -47,4 +47,18 @@ public interface IArticleService
     /// </summary>
     /// <returns></returns>
     public Task<ResultDTO> GetArticleList();
+
+    /// <summary>
+    /// 更新文章觀看進度
+    /// </summary>
+    /// <param name="progressParams"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> UpdateArticleReadingProgress(UpdateArticleReadingProgressParams progressParams);
+
+    /// <summary>
+    /// 獲取文章觀看進度
+    /// </summary>
+    /// <param name="articleId"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> GetArticleReadingProgress(int articleId);
 }
