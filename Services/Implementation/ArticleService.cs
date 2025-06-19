@@ -212,7 +212,8 @@ public class ArticleService : IArticleService
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var article = await _articleRepository.GetQueryable()
-              .Where(a => a.ArticleID == articleId && a.OwnerId == userInfo.UserId)
+              .Where(a => a.ArticleID == articleId
+                     && a.Article_User.Any(au => au.UserId == userInfo.UserId))
               .Select(a => new ArticleViewModel()
               {
                   ArticleId = a.ArticleID,
@@ -246,7 +247,7 @@ public class ArticleService : IArticleService
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var articleList = await _articleRepository.GetQueryable()
-              .Where(a => a.OwnerId == userInfo.UserId)
+              .Where(a => a.Article_User.Any(au => au.UserId == userInfo.UserId))
               .OrderByDescending(x => x.UpdateTime)
               .Select(a => new ArticleListViewModel()
               {
