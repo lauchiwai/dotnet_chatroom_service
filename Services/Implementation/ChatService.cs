@@ -10,6 +10,7 @@ using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;
 using System.Globalization;
+using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
 
@@ -21,7 +22,6 @@ public class ChatService : IChatService
     private readonly IApiClient _httpClient;
     private readonly IStreamClient _streamClient;
     private readonly IRepository<ChatSession> _chatSessionRepository;
-    private readonly IRepository<Article_Chat_Session> _articleChatSessionRepository;
     private readonly IRepository<OutboxMessage> _outboxMessageRepository;
     private readonly string _userTimeZoneId;
 
@@ -31,7 +31,6 @@ public class ChatService : IChatService
         IApiClient httpClient,
         IStreamClient streamClient,
         IRepository<ChatSession> chatSessionRepository,
-        IRepository<Article_Chat_Session> articleChatSessionRepository,
         IRepository<OutboxMessage> outboxMessageRepository)
     {
         _context = context;
@@ -39,12 +38,11 @@ public class ChatService : IChatService
         _httpClient = httpClient;
         _streamClient = streamClient;
         _chatSessionRepository = chatSessionRepository;
-        _articleChatSessionRepository = articleChatSessionRepository;
         _outboxMessageRepository = outboxMessageRepository;
         _userTimeZoneId = "Asia/Hong_Kong";
     }
 
-    public async Task<ResultDTO> GenerateChatSession()
+    public async Task<ResultDTO> GenerateChatSession(ChatSessionParams param)
     {
         var result = new ResultDTO() { IsSuccess = true };
         try
@@ -53,7 +51,7 @@ public class ChatService : IChatService
             var newChatSession = new ChatSession()
             {
                 UserId = userInfo.UserId,
-                SessionName = GenerateChatSessionName(),
+                SessionName = param.ChatSessionName ?? GenerateChatSessionName(),
                 UpdateTime = DateTime.UtcNow
             };
 
@@ -157,6 +155,41 @@ public class ChatService : IChatService
         return result;
     }
 
+    public async Task<ResultDTO> GetSceneChatSessionList()
+    {
+        var result = new ResultDTO { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+
+            var associatedSessionIds = _context.Article_Chat_Session
+                .Select(acs => acs.SessionID)
+                .Distinct();
+
+            var orphanedSessions = await _chatSessionRepository.GetQueryable()
+                .Where(cs =>
+                    cs.UserId == userInfo.UserId &&
+                    !associatedSessionIds.Contains(cs.SessionId))
+                .OrderByDescending(cs => cs.UpdateTime)
+                .Select(cs => new ChatSessionViewModel
+                {
+                    SessionId = cs.SessionId,
+                    SessionName = cs.SessionName ?? "Unnamed Session"
+                })
+                .ToListAsync();
+
+            result.Data = orphanedSessions;
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.Code = 500;
+            result.Message = $"Internal error: {ex.Message}";
+        }
+        return result;
+    }
+
+
     public async Task<ResultDTO> GetRagChatSessionListByArticleId(int articleId)
     {
         var result = new ResultDTO() { IsSuccess = true };
@@ -191,7 +224,6 @@ public class ChatService : IChatService
         }
         return result;
     }
-
 
     public async Task<ResultDTO> ValidateChatPermission(int sessionId)
     {
@@ -388,6 +420,38 @@ public class ChatService : IChatService
 
             await _streamClient.PostStreamAsync(
                 "/Chat/summary_stream",
+                summaryHttpRequest,
+                outputStream,
+                cancellationToken
+            );
+        }
+        catch (Exception ex)
+        {
+            await SendErrorEvent(outputStream, ex.Message);
+        }
+    }
+
+    public async Task SceneChatStream(Stream outputStream, SceneChatParams sceneChatParams, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var validationResult = await ValidateChatPermission(sceneChatParams.ChatSessionId);
+            if (!validationResult.IsSuccess)
+            {
+                await SendValidationError(outputStream, validationResult);
+                return;
+            }
+            
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var summaryHttpRequest = new SceneChatHttpRequest()
+            {
+                UserId = userInfo.UserId,
+                ChatSessionId = sceneChatParams.ChatSessionId,
+                Message = sceneChatParams.Message,
+            };
+
+            await _streamClient.PostStreamAsync(
+                "/Chat/scene_chat_stream",
                 summaryHttpRequest,
                 outputStream,
                 cancellationToken

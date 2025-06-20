@@ -8,9 +8,9 @@ public interface IChatService
     /// <summary>
     /// 創建聊天會話
     /// </summary>
+    /// <param name="param"></param>
     /// <returns></returns>
-    public Task<ResultDTO> GenerateChatSession();
-
+    public Task<ResultDTO> GenerateChatSession(ChatSessionParams param);
 
     /// <summary>
     /// 創建 文章相關的聊天會話
@@ -24,6 +24,12 @@ public interface IChatService
     /// </summary>
     /// <returns></returns>
     public Task<ResultDTO> GetChatSessionList();
+
+    /// <summary>
+    /// 獲取該用戶的所以場景對話
+    /// </summary>
+    /// <returns></returns>
+    public Task<ResultDTO> GetSceneChatSessionList();
 
     /// <summary>
     /// 獲取該用戶的文章 RAG 對話
@@ -77,4 +83,13 @@ public interface IChatService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task SummaryStream(Stream outputStream, SummaryParams summaryParams, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// sse 場景對話
+    /// </summary>
+    /// <param name="outputStream"></param>
+    /// <param name="sceneChatParams"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task SceneChatStream(Stream outputStream, SceneChatParams sceneChatParams, CancellationToken cancellationToken);
 }

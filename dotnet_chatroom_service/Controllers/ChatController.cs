@@ -19,9 +19,9 @@ public class ChatController : ControllerBase
 
     [HttpPost("GenerateChatSession")]
     [Authorize]
-    public async Task<IActionResult> GenerateChatSession()
+    public async Task<IActionResult> GenerateChatSession(ChatSessionParams param)
     {
-        var result = await _chatService.GenerateChatSession();
+        var result = await _chatService.GenerateChatSession(param);
 
         if (result.IsSuccess)
             return Ok(result);
@@ -46,6 +46,18 @@ public class ChatController : ControllerBase
     public async Task<IActionResult> GetChatSessionList()
     {
         var result = await _chatService.GetChatSessionList();
+
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpGet("GetSceneChatSessionList")]
+    [Authorize]
+    public async Task<IActionResult> GetSceneChatSessionList()
+    {
+        var result = await _chatService.GetSceneChatSessionList();
 
         if (result.IsSuccess)
             return Ok(result);
@@ -137,6 +149,23 @@ public class ChatController : ControllerBase
             try
             {
                 await _chatService.SummaryStream(outputStream, summaryParams, cancellationToken);
+            }
+            finally
+            {
+                outputStream.Close();
+            }
+        }, "text/event-stream");
+    }
+
+    [HttpPost("SceneChatStream")]
+    [Authorize]
+    public async Task<IActionResult> SceneChatStream([FromBody] SceneChatParams sceneChatParams)
+    {
+        return new StreamedResult(async (outputStream, cancellationToken) =>
+        {
+            try
+            {
+                await _chatService.SceneChatStream(outputStream, sceneChatParams, cancellationToken);
             }
             finally
             {
