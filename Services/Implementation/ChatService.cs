@@ -2,6 +2,7 @@
 using Common.Helper.Implementation;
 using Common.Helper.Interface;
 using Common.HttpClientDto;
+using Common.HttpClientResultDto;
 using Common.Models;
 using Common.Params.Chat;
 using Common.ViewModels.Chat;
@@ -263,13 +264,16 @@ public class ChatService : IChatService
 
     public async Task<ResultDTO> GetChatHistory(int sessionId)
     {
-        var response = await _httpClient.GetAsync<ChatServiceHttpClientResultDto>($"Chat/getChatHistoryBySessionId/{sessionId}");
+        var (statusCode, response) = await _httpClient.GetWithStatusAsync<ChatServiceHttpClientResultDto>(
+            $"Chat/getChatHistoryBySessionId/{sessionId}"
+        );      
+
         return new ResultDTO()
         {
             IsSuccess = response.success,
-            Code = response.success ? 200 : 500,
+            Code = (int)statusCode,
             Data = response.data,
-            Message = response.message
+            Message = response.message ?? string.Empty
         };
     }
 

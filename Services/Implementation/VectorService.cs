@@ -1,5 +1,6 @@
 ﻿using Common.Dto;
 using Common.Helper.Interface;
+using Common.HttpClientResultDto;
 using Common.Params.Vector;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
@@ -18,57 +19,80 @@ public class VectorService : IVectorService
 
     public async Task<ResultDTO> CheckVectorDataExist(CheckVectorDataExistParams checkVectorDataExistParams)
     {
-        var response = await _httpClient.PostAsync<CheckVectorDataExistParams, ChatServiceHttpClientResultDto>("Vector/check_vector_data_exist", checkVectorDataExistParams);
+        var (statusCode, response) = await _httpClient.PostWithStatusAsync<CheckVectorDataExistParams, ChatServiceHttpClientResultDto>(
+            "Vector/check_vector_data_exist",
+            checkVectorDataExistParams
+        );
+
         return new ResultDTO()
         {
             IsSuccess = response.success,
+            Code = (int)statusCode,
             Data = response.data,
-            Message = response.message
+            Message = response.message ?? string.Empty
         };
     }
 
     public async Task<ResultDTO> GetAllVectorCollections()
     {
-        var response = await _httpClient.GetAsync<ChatServiceHttpClientResultDto>("Vector/get_collections");
+        var (statusCode, response) = await _httpClient.GetWithStatusAsync<ChatServiceHttpClientResultDto>(
+            "Vector/get_collections"
+        );
+
         return new ResultDTO()
         {
             IsSuccess = response.success,
+            Code = (int)statusCode,
             Data = response.data,
-            Message = response.message
+            Message = response.message ?? string.Empty
         };
     }
 
     public async Task<ResultDTO> VectorSemanticSearch(VectorSearchParams vectorSearchParams)
     {
-        var response = await _httpClient.PostAsync<VectorSearchParams, ChatServiceHttpClientResultDto>("Vector/collections/search", vectorSearchParams);
+        var (statusCode, response) = await _httpClient.PostWithStatusAsync<VectorSearchParams, ChatServiceHttpClientResultDto>(
+            "Vector/collections/search",
+            vectorSearchParams
+        );
+
         return new ResultDTO()
         {
             IsSuccess = response.success,
+            Code = (int)statusCode,
             Data = response.data,
-            Message = response.message
+            Message = response.message ?? string.Empty
         };
     }
 
     public async Task<ResultDTO> UpsertVectorCollectionTexts(UpsertVectorCollectionParams upsertVectorCollectionParams)
     {
-        var response = await _httpClient.PostAsync<UpsertVectorCollectionParams, ChatServiceHttpClientResultDto>("Vector/collections/upsert", upsertVectorCollectionParams);
+        var (statusCode, response) = await _httpClient.PostWithStatusAsync<UpsertVectorCollectionParams, ChatServiceHttpClientResultDto>(
+            "Vector/collections/upsert",
+            upsertVectorCollectionParams
+        );
+
         return new ResultDTO()
         {
             IsSuccess = response.success,
-            Code = response.success ? 200 : 500,
+            Code = (int)statusCode,
             Data = response.data,
-            Message = response.message
+            Message = response.message ?? string.Empty
         };
     }
 
     public async Task<ResultDTO> GenerateVectorCollection(GenerateCollectionParams generateCollectionParams)
     {
-        var response = await _httpClient.PostAsync<GenerateCollectionParams, ChatServiceHttpClientResultDto>("Vector/generate_collections", generateCollectionParams);
+        var (statusCode, response) = await _httpClient.PostWithStatusAsync<GenerateCollectionParams, ChatServiceHttpClientResultDto>(
+            "Vector/generate_collections",
+            generateCollectionParams
+        );
+
         return new ResultDTO()
         {
             IsSuccess = response.success,
+            Code = (int)statusCode,
             Data = response.data,
-            Message = response.message
+            Message = response.message ?? string.Empty
         };
     }
 }

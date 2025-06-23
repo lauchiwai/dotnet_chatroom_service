@@ -1,4 +1,4 @@
-﻿namespace Common.Dto;
+﻿namespace Common.HttpClientResultDto;
 
 public class ChatServiceHttpClientResultDto
 {
