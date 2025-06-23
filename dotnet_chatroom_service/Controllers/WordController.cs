@@ -1,4 +1,5 @@
-﻿using Common.Params.Word;
+﻿using Common.Dto;
+using Common.Params.Word;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interfaces;
@@ -49,6 +50,17 @@ public class WordController : ControllerBase
             return BadRequest(result);
     }
 
+    [HttpPatch("UpdateWordReviewStatus/{wordId}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateWordReviewStatus(int wordId)
+    {
+        var result = await _wordService.UpdateWordReviewStatus(wordId);
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
     [HttpDelete("RemoveWordByID/{wordId}")]
     [Authorize]
     public async Task<IActionResult> RemoveWordByID(int wordId)
@@ -87,6 +99,28 @@ public class WordController : ControllerBase
     public async Task<IActionResult> CheckUserWordExistsByText(string word)
     {
         var result = await _wordService.CheckUserWordExistsByText(word);
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpGet("GetNextReviewWord")]
+    [Authorize]
+    public async Task<IActionResult> GetNextReviewWord()
+    {
+        var result = await _wordService.GetNextReviewWord();
+        if (result.IsSuccess)
+            return Ok(result);
+        else
+            return BadRequest(result);
+    }
+
+    [HttpGet("GetReviewWordCount")]
+    [Authorize]
+    public async Task<IActionResult> GetReviewWordCount()
+    {
+        var result = await _wordService.GetReviewWordCount();
         if (result.IsSuccess)
             return Ok(result);
         else

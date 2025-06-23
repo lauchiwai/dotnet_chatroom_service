@@ -11,7 +11,6 @@ using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;
 using System.Globalization;
-using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
 
@@ -266,7 +265,7 @@ public class ChatService : IChatService
     {
         var (statusCode, response) = await _httpClient.GetWithStatusAsync<ChatServiceHttpClientResultDto>(
             $"Chat/getChatHistoryBySessionId/{sessionId}"
-        );      
+        );
 
         return new ResultDTO()
         {
@@ -445,7 +444,7 @@ public class ChatService : IChatService
                 await SendValidationError(outputStream, validationResult);
                 return;
             }
-            
+
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var summaryHttpRequest = new SceneChatHttpRequest()
             {

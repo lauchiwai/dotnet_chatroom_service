@@ -52,4 +52,16 @@ public interface IWordService
     /// </summary>
     /// <param name="word">單字</param>
     Task<ResultDTO> CheckUserWordExistsByText(string word);
+
+    /// <summary>
+    /// 獲取下一個需要復習的單字
+    /// </summary>
+    /// <returns></returns>
+    Task<ResultDTO> GetNextReviewWord();
+
+    /// <summary>
+    /// 獲取需要復習的單字的數量
+    /// </summary>
+    /// <returns></returns>
+    Task<ResultDTO> GetReviewWordCount();
 }

@@ -7,6 +7,6 @@ public class ChatSessionParams
     /// <summary>
     /// 聊天室名稱
     /// </summary>
-    [JsonPropertyName("collection_name")]
+    [JsonPropertyName("chat_session_name")]
     public string? ChatSessionName { get; set; } = null!;
 }

@@ -377,4 +377,75 @@ public class WordService : IWordService
         return result;
     }
 
+    public async Task<ResultDTO> GetNextReviewWord()
+    {
+        var result = new ResultDTO { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var currentTime = DateTime.UtcNow;
+
+            var nextWord = await _userWordsRepository.GetQueryable()
+                .Include(uw => uw.Word)
+                .Where(uw =>
+                    uw.UserId == userInfo.UserId &&
+                    uw.NextReviewDate <= currentTime)
+                .OrderBy(uw => uw.NextReviewDate)
+                .ThenBy(uw => uw.LastReviewed.HasValue)
+                .ThenBy(uw => uw.LastReviewed)
+                .Select(uw => new WordViewModel
+                {
+                    UserWordId = uw.UserWordId,
+                    WordId = uw.WordId,
+                    Word = uw.Word.Word,
+                    NextReviewDate = uw.NextReviewDate,
+                    LastReviewed = uw.LastReviewed,
+                    ReviewCount = uw.ReviewCount
+                })
+                .FirstOrDefaultAsync();
+
+            if (nextWord == null)
+            {
+                result.IsSuccess = true;
+                result.Message = "No words need review at this time";
+                return result;
+            }
+
+            result.Data = nextWord;
+        }
+        catch (Exception ex)
+        {
+            result.Code = 500;
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+        return result;
+    }
+
+    public async Task<ResultDTO> GetReviewWordCount()
+    {
+        var result = new ResultDTO { IsSuccess = true };
+        try
+        {
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+            var currentTime = DateTime.UtcNow;
+
+            var count = await _userWordsRepository.GetQueryable()
+                .Where(uw =>
+                    uw.UserId == userInfo.UserId &&
+                    uw.NextReviewDate <= currentTime)
+                .CountAsync();
+
+            result.Data = count;
+        }
+        catch (Exception ex)
+        {
+            result.Code = 500;
+            result.IsSuccess = false;
+            result.Message = ex.Message;
+        }
+        return result;
+    }
+
+
 }
