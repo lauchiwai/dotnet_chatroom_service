@@ -1,5 +1,6 @@
 ﻿using Common.Dto;
 using Common.Params.Article;
+using Common.Params.Search;
 
 namespace Services.Interfaces;
 
@@ -46,7 +47,7 @@ public interface IArticleService
     /// 獲取所有文章内容
     /// </summary>
     /// <returns></returns>
-    public Task<ResultDTO> GetArticleList();
+    public Task<ResultDTO> GetArticleList(SearchParams? searchParams = null);
 
     /// <summary>
     /// 更新文章觀看進度

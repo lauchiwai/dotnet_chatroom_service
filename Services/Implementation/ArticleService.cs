@@ -3,7 +3,9 @@ using Common.Helper.Implementation;
 using Common.Helper.Interface;
 using Common.Models;
 using Common.Params.Article;
+using Common.Params.Search;
 using Common.ViewModels.Article;
+using Common.ViewModels.Search;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Repositories.HttpClients;
@@ -133,7 +135,6 @@ public class ArticleService : IArticleService
 
             } else
             {
-
                 result.Data = new ArticleReadingProgressViewmodel
                 {
                     ArticleId = association.ArticleId,
@@ -240,22 +241,64 @@ public class ArticleService : IArticleService
         return result;
     }
 
-    public async Task<ResultDTO> GetArticleList()
+    public async Task<ResultDTO> GetArticleList(SearchParams? searchParams = null)
     {
         var result = new ResultDTO() { IsSuccess = true };
         try
         {
-            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
-            var articleList = await _articleRepository.GetQueryable()
-              .Where(a => a.Article_User.Any(au => au.UserId == userInfo.UserId))
-              .OrderByDescending(x => x.UpdateTime)
-              .Select(a => new ArticleListViewModel()
-              {
-                  ArticleId = a.ArticleID,
-                  ArticleTitle = a.ArticleTitle,
-              }).ToListAsync();
+            var safeParams = searchParams ?? new SearchParams();
 
-            result.Data = articleList;
+            safeParams.PageNumber = safeParams.PageNumber < 1 ? 1 : safeParams.PageNumber;
+            safeParams.PageSize = safeParams.PageSize switch
+            {
+                < 1 => 20,
+                > 100 => 100,
+                _ => safeParams.PageSize
+            };
+
+            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+
+            var baseQuery = _articleRepository.GetQueryable()
+                .Where(a => a.Article_User.Any(au => au.UserId == userInfo.UserId));
+
+            if (!string.IsNullOrWhiteSpace(safeParams.Keyword))
+            {
+                baseQuery = baseQuery.Where(a =>
+                    a.ArticleTitle.Contains(safeParams.Keyword) ||
+                    a.ArticleContent.Contains(safeParams.Keyword));
+            }
+
+            if (safeParams.StartDate.HasValue)
+            {
+                baseQuery = baseQuery.Where(a => a.UpdateTime >= safeParams.StartDate.Value);
+            }
+            if (safeParams.EndDate.HasValue)
+            {
+                baseQuery = baseQuery.Where(a => a.UpdateTime <= safeParams.EndDate.Value);
+            }
+
+            var orderedQuery = baseQuery.OrderByDescending(a => a.UpdateTime);
+
+            var totalCount = await orderedQuery.CountAsync();
+
+            var pagedResults = await orderedQuery
+                .Select(a => new ArticleListViewModel()
+                {
+                    ArticleId = a.ArticleID,
+                    ArticleTitle = a.ArticleTitle,
+                })
+                .Skip((safeParams.PageNumber - 1) * safeParams.PageSize)
+                .Take(safeParams.PageSize)
+                .ToListAsync();
+
+            result.Data = new PagedViewModel<ArticleListViewModel>
+            {
+                Items = pagedResults,
+                TotalCount = totalCount,
+                PageNumber = safeParams.PageNumber,
+                PageSize = safeParams.PageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)safeParams.PageSize)
+            };
         }
         catch (Exception ex)
         {
@@ -263,9 +306,9 @@ public class ArticleService : IArticleService
             result.Code = 500;
             result.Message = ex.Message;
         }
-
         return result;
     }
+
 
     public async Task SteamFeatchAiArticle(Stream outputStream, FetchAiArticleParams fetchAiArticleParams, CancellationToken cancellationToken)
     {

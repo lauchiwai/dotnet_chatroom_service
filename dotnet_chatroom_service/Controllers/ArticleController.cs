@@ -1,7 +1,9 @@
 ﻿using Common.Dto;
 using Common.Params.Article;
+using Common.Params.Search;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Services.Implementation;
 using Services.Interfaces;
 
 namespace dotnet_chatroom_service.Controllers;
@@ -83,9 +85,9 @@ public class ArticleController : ControllerBase
 
     [HttpGet("GetArticleList")]
     [Authorize]
-    public async Task<IActionResult> GetArticleList()
+    public async Task<IActionResult> GetArticleList([FromQuery] SearchParams? searchParams = null)
     {
-        var result = await _articleService.GetArticleList();
+        var result = await _articleService.GetArticleList(searchParams);
 
         if (result.IsSuccess)
             return Ok(result);

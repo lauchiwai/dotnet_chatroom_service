@@ -2,7 +2,9 @@
 using Common.Helper.Implementation;
 using Common.Helper.Interface;
 using Common.Models;
+using Common.Params.Search;
 using Common.Params.Word;
+using Common.ViewModels.Search;
 using Common.ViewModels.Word;
 using Microsoft.EntityFrameworkCore;
 using Repositories.MyDbContext;
@@ -29,15 +31,38 @@ public class WordService : IWordService
         _userWordsRepository = userWordsRepository;
     }
 
-    public async Task<ResultDTO> GetWordList()
+    public async Task<ResultDTO> GetWordList(SearchParams? searchParams = null)
     {
         var result = new ResultDTO { IsSuccess = true };
         try
         {
+            var safeParams = searchParams ?? new SearchParams();
+
+            safeParams.PageNumber = safeParams.PageNumber < 1 ? 1 : safeParams.PageNumber;
+            safeParams.PageSize = safeParams.PageSize switch
+            {
+                < 1 => 20,
+                > 100 => 100,
+                _ => safeParams.PageSize
+            };
+
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
-            var words = await _userWordsRepository.GetQueryable()
+
+            var baseQuery = _userWordsRepository.GetQueryable()
                 .Include(uw => uw.Word)
-                .Where(uw => uw.UserId == userInfo.UserId)
+                .Where(uw => uw.UserId == userInfo.UserId);
+
+            var filteredQuery = ApplyFilters(baseQuery, safeParams);
+
+            var orderedQuery = ApplySorting(filteredQuery, safeParams.SortBy, safeParams.SortDirection);
+
+            var totalCount = await orderedQuery.CountAsync();
+
+            var pagedQuery = orderedQuery
+                .Skip((safeParams.PageNumber - 1) * safeParams.PageSize)
+                .Take(safeParams.PageSize);
+
+            var items = await pagedQuery
                 .Select(uw => new WordViewModel
                 {
                     UserWordId = uw.UserWordId,
@@ -49,7 +74,14 @@ public class WordService : IWordService
                 })
                 .ToListAsync();
 
-            result.Data = words;
+            result.Data = new PagedViewModel<WordViewModel>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = safeParams.PageNumber,
+                PageSize = safeParams.PageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)safeParams.PageSize)
+            };
         }
         catch (Exception ex)
         {
@@ -59,6 +91,65 @@ public class WordService : IWordService
         }
         return result;
     }
+
+    private IQueryable<UserWords> ApplyFilters(IQueryable<UserWords> query, SearchParams searchParams)
+    {
+        if (!string.IsNullOrWhiteSpace(searchParams.Keyword))
+        {
+            query = query.Where(uw => uw.Word.Word.Contains(searchParams.Keyword));
+        }
+
+        if (searchParams.StartDate.HasValue)
+        {
+            query = query.Where(uw => uw.CreatedAt >= searchParams.StartDate.Value);
+        }
+        if (searchParams.EndDate.HasValue)
+        {
+            query = query.Where(uw => uw.CreatedAt <= searchParams.EndDate.Value);
+        }
+
+        if (searchParams.CustomFilters != null)
+        {
+            if (searchParams.CustomFilters.TryGetValue("ReviewStatus", out var status))
+            {
+                if (status.ToString() == "NotReviewed")
+                    query = query.Where(uw => uw.LastReviewed == null);
+                else if (status.ToString() == "Reviewed")
+                    query = query.Where(uw => uw.LastReviewed != null);
+            }
+        }
+
+        return query;
+    }
+
+    private IQueryable<UserWords> ApplySorting(IQueryable<UserWords> query, string? sortBy, string? sortDirection)
+    {
+        sortDirection = sortDirection?.ToLower() == "desc" ? "desc" : "asc";
+
+        switch (sortBy?.ToLower())
+        {
+            case "word":
+                return sortDirection == "asc"
+                    ? query.OrderBy(uw => uw.Word.Word)
+                    : query.OrderByDescending(uw => uw.Word.Word);
+
+            case "reviewdate":
+                return sortDirection == "asc"
+                    ? query.OrderBy(uw => uw.NextReviewDate)
+                    : query.OrderByDescending(uw => uw.NextReviewDate);
+
+            case "added":
+                return sortDirection == "asc"
+                    ? query.OrderBy(uw => uw.CreatedAt)
+                    : query.OrderByDescending(uw => uw.CreatedAt);
+
+            default:
+                return query
+                    .OrderBy(uw => uw.LastReviewed.HasValue)
+                    .ThenBy(uw => uw.NextReviewDate);
+        }
+    }
+
 
     public async Task<ResultDTO> GetWordById(int wordId)
     {
@@ -307,18 +398,18 @@ public class WordService : IWordService
         }
         return result;
     }
-    
+
     private DateTime CalculateNextReviewDate(int reviewCount)
     {
         // 艾宾浩斯遗忘曲线
         return reviewCount switch
         {
-            0 => DateTime.UtcNow.AddDays(1),  
-            1 => DateTime.UtcNow.AddDays(3),   
-            2 => DateTime.UtcNow.AddDays(7),    
-            3 => DateTime.UtcNow.AddDays(14),   
-            4 => DateTime.UtcNow.AddDays(30),   
-            _ => DateTime.UtcNow.AddDays(60)   
+            0 => DateTime.UtcNow.AddDays(1),
+            1 => DateTime.UtcNow.AddDays(3),
+            2 => DateTime.UtcNow.AddDays(7),
+            3 => DateTime.UtcNow.AddDays(14),
+            4 => DateTime.UtcNow.AddDays(30),
+            _ => DateTime.UtcNow.AddDays(60)
         };
     }
 
@@ -390,9 +481,8 @@ public class WordService : IWordService
                 .Where(uw =>
                     uw.UserId == userInfo.UserId &&
                     uw.NextReviewDate <= currentTime)
-                .OrderBy(uw => uw.NextReviewDate)
-                .ThenBy(uw => uw.LastReviewed.HasValue)
-                .ThenBy(uw => uw.LastReviewed)
+                .OrderBy(uw => uw.LastReviewed.HasValue) 
+                .ThenBy(uw => uw.NextReviewDate)        
                 .Select(uw => new WordViewModel
                 {
                     UserWordId = uw.UserWordId,
@@ -406,9 +496,24 @@ public class WordService : IWordService
 
             if (nextWord == null)
             {
-                result.IsSuccess = true;
-                result.Message = "No words need review at this time";
-                return result;
+                nextWord = await _userWordsRepository.GetQueryable()
+                    .Include(uw => uw.Word)
+                    .Where(uw => uw.UserId == userInfo.UserId)
+                    .OrderBy(_ => Guid.NewGuid())  
+                    .Select(uw => new WordViewModel
+                    {
+                        UserWordId = uw.UserWordId,
+                        WordId = uw.WordId,
+                        Word = uw.Word.Word,
+                        NextReviewDate = uw.NextReviewDate,
+                        LastReviewed = uw.LastReviewed,
+                        ReviewCount = uw.ReviewCount
+                    })
+                    .FirstOrDefaultAsync();
+
+                result.Message = nextWord != null
+                    ? "No review words. Showing random word"
+                    : "No words available";
             }
 
             result.Data = nextWord;
@@ -421,6 +526,7 @@ public class WordService : IWordService
         }
         return result;
     }
+
 
     public async Task<ResultDTO> GetReviewWordCount()
     {
@@ -446,6 +552,4 @@ public class WordService : IWordService
         }
         return result;
     }
-
-
 }

@@ -1,4 +1,4 @@
-﻿using Common.Dto;
+﻿using Common.Params.Search;
 using Common.Params.Word;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,9 +19,10 @@ public class WordController : ControllerBase
 
     [HttpGet("GetWordList")]
     [Authorize]
-    public async Task<IActionResult> GetWordList()
+    public async Task<IActionResult> GetWordList([FromQuery] SearchParams? searchParams = null)
     {
-        var result = await _wordService.GetWordList();
+        var result = await _wordService.GetWordList(searchParams);
+
         if (result.IsSuccess)
             return Ok(result);
         else

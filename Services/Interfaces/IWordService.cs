@@ -1,4 +1,5 @@
 ﻿using Common.Dto;
+using Common.Params.Search;
 using Common.Params.Word;
 
 namespace Services.Interfaces;
@@ -8,7 +9,7 @@ public interface IWordService
     /// <summary>
     /// 取得當前使用者的單字列表
     /// </summary>
-    Task<ResultDTO> GetWordList();
+    Task<ResultDTO> GetWordList(SearchParams? searchParams = null);
 
     /// <summary>
     /// 根據單字ID取得單字詳情
