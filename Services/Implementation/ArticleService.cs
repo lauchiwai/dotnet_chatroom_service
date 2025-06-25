@@ -178,13 +178,25 @@ public class ArticleService : IArticleService
         try
         {
             var article = await _articleRepository.GetQueryable()
-              .FirstOrDefaultAsync(a => a.ArticleID == articleId);
+                .Include(a => a.Article_Chat_Session)
+                .Include(a => a.Article_User)
+                .FirstOrDefaultAsync(a => a.ArticleID == articleId);
 
             if (article == null)
             {
                 result.IsSuccess = false;
                 result.Code = 404;
                 return result;
+            }
+
+            if (article.Article_Chat_Session?.Any() == true)
+            {
+                _context.RemoveRange(article.Article_Chat_Session);
+            }
+
+            if (article.Article_User?.Any() == true)
+            {
+                _context.RemoveRange(article.Article_User);
             }
 
             _articleRepository.Delete(article);
@@ -198,7 +210,6 @@ public class ArticleService : IArticleService
                 IsPublished = false,
                 RetryCount = 0
             };
-
             _outboxMessageRepository.Add(outboxMessage);
 
             await _articleRepository.SaveChangesAsync();

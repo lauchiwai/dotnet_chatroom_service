@@ -120,7 +120,6 @@ public class ChatService : IChatService
         return result;
     }
 
-
     public string GenerateChatSessionName()
     {
         var userTimeZone = TimeZoneInfo.FindSystemTimeZoneById(_userTimeZoneId);
