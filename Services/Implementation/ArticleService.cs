@@ -48,9 +48,13 @@ public class ArticleService : IArticleService
     public async Task<ResultDTO> GenerateArticle(GenerateArticleParams generateArticleParams)
     {
         var result = new ResultDTO() { IsSuccess = true };
+
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
         try
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
+
             var newArticle = new Article()
             {
                 OwnerId = userInfo.UserId,
@@ -58,12 +62,25 @@ public class ArticleService : IArticleService
                 ArticleContent = generateArticleParams.ArticleContent,
                 UpdateTime = DateTime.UtcNow
             };
-
             await _articleRepository.AddAsync(newArticle);
+
             await _articleRepository.SaveChangesAsync();
+
+            var newArticleUser = new Article_User
+            {
+                UserId = userInfo.UserId,
+                ArticleId = newArticle.ArticleID, 
+                Progress = 0 
+            };
+
+            await _articleUserRepository.AddAsync(newArticleUser);
+            await _articleUserRepository.SaveChangesAsync();
+
+            await transaction.CommitAsync();
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync();
             result.Code = 500;
             result.IsSuccess = false;
             result.Message = ex.Message;
@@ -71,6 +88,7 @@ public class ArticleService : IArticleService
 
         return result;
     }
+
 
     public async Task<ResultDTO> UpdateArticleReadingProgress(UpdateArticleReadingProgressParams progressParams)
     {
