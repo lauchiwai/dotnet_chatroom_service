@@ -188,7 +188,6 @@ public class ChatService : IChatService
         return result;
     }
 
-
     public async Task<ResultDTO> GetRagChatSessionListByArticleId(int articleId)
     {
         var result = new ResultDTO() { IsSuccess = true };
@@ -278,15 +277,13 @@ public class ChatService : IChatService
     public async Task<ResultDTO> DeleteChatData(int sessionId)
     {
         var result = new ResultDTO() { IsSuccess = true };
-
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
             var articleSessions = await _context.Article_Chat_Session
-               .Where(acs => acs.SessionID == sessionId)
-               .ToListAsync();
-
+                .Where(acs => acs.SessionID == sessionId)
+                .ToListAsync();
 
             if (articleSessions.Any())
             {
@@ -298,13 +295,13 @@ public class ChatService : IChatService
             {
                 result.IsSuccess = false;
                 result.Code = 404;
-                result.Message = "chat session does not exist";
+                result.Message = "會話ID不存在";
                 return result;
             }
 
             _context.ChatSession.Remove(chatSession);
 
-            var outboxMessage = new OutboxMessage
+            _outboxMessageRepository.Add(new OutboxMessage
             {
                 Id = Guid.NewGuid().ToString(),
                 EventType = "ChatSessionDeleted",
@@ -316,21 +313,18 @@ public class ChatService : IChatService
                 CreatedTime = DateTime.UtcNow,
                 IsPublished = false,
                 RetryCount = 0
-            };
-
-            _outboxMessageRepository.Add(outboxMessage);
+            });
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             result.IsSuccess = false;
             result.Code = 500;
-            result.Message = $"delete fail: {ex.Message}";
+            result.Message = $"刪除失敗: {ex.Message}";
+            await transaction.RollbackAsync();
         }
-
         return result;
     }
 

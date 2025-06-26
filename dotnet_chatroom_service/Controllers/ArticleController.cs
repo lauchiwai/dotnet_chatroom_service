@@ -64,7 +64,7 @@ public class ArticleController : ControllerBase
     [Authorize]
     public async Task<IActionResult> DeleteArticle(int articleId)
     {
-        var result = await _articleService.DeleteArticle(articleId);
+        var result = await _articleService.RequestArticleDeletion(articleId);
         if (result.IsSuccess)
             return Ok(result);
         else

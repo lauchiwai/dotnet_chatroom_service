@@ -1,4 +1,5 @@
-﻿using Common.Dto;
+﻿using Common.Commands;
+using Common.Dto;
 using Common.Helper.Implementation;
 using Common.Helper.Interface;
 using Common.Models;
@@ -170,11 +171,39 @@ public class ArticleService : IArticleService
         return result;
     }
 
+    public async Task<ResultDTO> RequestArticleDeletion(int articleId)
+    {
+        var result = new ResultDTO() { IsSuccess = true };
+        try
+        {
+            var sessionIds = await _context.Article_Chat_Session
+                .Where(acs => acs.ArticleId == articleId)
+                .Select(acs => acs.SessionID)
+                .ToListAsync();
+
+            var command = new DeleteArticleSession
+            {
+                ArticleId = articleId,
+                SessionIds = sessionIds
+            };
+
+            return await _mediator.Send(command);
+        }
+        catch (Exception ex)
+        {
+
+            result.IsSuccess = false;
+            result.Code = 500;
+            result.Message = $"刪除請求失敗: {ex.Message}";
+        }
+
+        return result; 
+    }
+
     public async Task<ResultDTO> DeleteArticle(int articleId)
     {
         var result = new ResultDTO() { IsSuccess = true };
         using var transaction = await _context.Database.BeginTransactionAsync();
-
         try
         {
             var article = await _articleRepository.GetQueryable()
@@ -186,13 +215,13 @@ public class ArticleService : IArticleService
             {
                 result.IsSuccess = false;
                 result.Code = 404;
+                result.Message = $"文章ID {articleId} 不存在";
                 return result;
             }
 
-            if (article.Article_Chat_Session?.Any() == true)
-            {
-                _context.RemoveRange(article.Article_Chat_Session);
-            }
+            var sessionIds = article.Article_Chat_Session?
+                .Select(acs => acs.SessionID)
+                .ToList() ?? new List<int>();
 
             if (article.Article_User?.Any() == true)
             {
@@ -201,28 +230,33 @@ public class ArticleService : IArticleService
 
             _articleRepository.Delete(article);
 
-            var outboxMessage = new OutboxMessage
+            _outboxMessageRepository.Add(new OutboxMessage
             {
                 Id = Guid.NewGuid().ToString(),
                 EventType = "ArticleDeleted",
-                Payload = JsonSerializer.Serialize(new { ArticleId = articleId, CollectionName = "articles" }),
+                Payload = JsonSerializer.Serialize(new
+                {
+                    ArticleId = articleId,
+                    SessionIds = sessionIds,
+                    CollectionName = "articles"
+                }),
                 CreatedTime = DateTime.UtcNow,
                 IsPublished = false,
                 RetryCount = 0
-            };
-            _outboxMessageRepository.Add(outboxMessage);
+            });
 
-            await _articleRepository.SaveChangesAsync();
+            await _context.SaveChangesAsync();
             await transaction.CommitAsync();
+
+            result.Data = sessionIds;
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             result.IsSuccess = false;
             result.Code = 500;
             result.Message = ex.Message;
+            await transaction.RollbackAsync();
         }
-
         return result;
     }
 

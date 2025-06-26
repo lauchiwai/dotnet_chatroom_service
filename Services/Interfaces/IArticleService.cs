@@ -30,6 +30,13 @@ public interface IArticleService
     public Task<ResultDTO> DeleteArticle(int articleId);
 
     /// <summary>
+    /// 獲取 刪除文章的資料
+    /// </summary>
+    /// <param name="articleId"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> RequestArticleDeletion(int articleId);
+
+    /// <summary>
     ///  文章向量化
     /// </summary>
     /// <param name="vectorizeArticleParams"></param>
