@@ -19,9 +19,9 @@ public class EnglishAssistantController : ControllerBase
 
     [HttpPost("WordTips")]
     [Authorize]
-    public async Task<IActionResult> WordTips([FromBody] WordAssistanParams fetchAiArticleParams)
+    public Task<IActionResult> WordTips([FromBody] WordAssistanParams fetchAiArticleParams)
     {
-        return new StreamedResult(async (outputStream, cancellationToken) =>
+        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
         {
             try
             {
@@ -29,16 +29,16 @@ public class EnglishAssistantController : ControllerBase
             }
             finally
             {
-                outputStream.Close();
+                await outputStream.DisposeAsync();
             }
-        }, "text/event-stream");
+        }, "text/event-stream"));
     }
 
     [HttpPost("WordTranslate")]
     [Authorize]
-    public async Task<IActionResult> WordTranslate([FromBody] WordAssistanParams fetchAiArticleParams)
+    public Task<IActionResult> WordTranslate([FromBody] WordAssistanParams fetchAiArticleParams)
     {
-        return new StreamedResult(async (outputStream, cancellationToken) =>
+        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
         {
             try
             {
@@ -46,16 +46,16 @@ public class EnglishAssistantController : ControllerBase
             }
             finally
             {
-                outputStream.Close();
+                await outputStream.DisposeAsync();
             }
-        }, "text/event-stream");
+        }, "text/event-stream"));
     }
 
     [HttpPost("WordAssistan")]
     [Authorize]
-    public async Task<IActionResult> WordAssistan([FromBody] WordAssistanParams fetchAiArticleParams)
+    public Task<IActionResult> WordAssistan([FromBody] WordAssistanParams fetchAiArticleParams)
     {
-        return new StreamedResult(async (outputStream, cancellationToken) =>
+        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
         {
             try
             {
@@ -63,16 +63,16 @@ public class EnglishAssistantController : ControllerBase
             }
             finally
             {
-                outputStream.Close();
+                await outputStream.DisposeAsync();
             }
-        }, "text/event-stream");
+        }, "text/event-stream"));
     }
 
     [HttpPost("TextLinguisticAssistant")]
     [Authorize]
-    public async Task<IActionResult> TextLinguisticAssistant([FromBody] TextLinguisticAssistantParams param)
+    public Task<IActionResult> TextLinguisticAssistant([FromBody] TextLinguisticAssistantParams param)
     {
-        return new StreamedResult(async (outputStream, cancellationToken) =>
+        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
         {
             try
             {
@@ -80,8 +80,8 @@ public class EnglishAssistantController : ControllerBase
             }
             finally
             {
-                outputStream.Close();
+                await outputStream.DisposeAsync();
             }
-        }, "text/event-stream");
+        }, "text/event-stream"));
     }
 }

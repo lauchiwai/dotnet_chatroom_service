@@ -125,9 +125,9 @@ public class ChatController : ControllerBase
 
     [HttpPost("ChatStream")]
     [Authorize]
-    public async Task<IActionResult> ChatStream([FromBody] ChatParams chatParams)
+    public Task<IActionResult> ChatStream([FromBody] ChatParams chatParams)
     {
-        return new StreamedResult(async (outputStream, cancellationToken) =>
+        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
         {
             try
             {
@@ -135,16 +135,16 @@ public class ChatController : ControllerBase
             }
             finally
             {
-                outputStream.Close();
+                await outputStream.DisposeAsync();
             }
-        }, "text/event-stream");
+        }, "text/event-stream"));
     }
 
     [HttpPost("SummaryStream")]
     [Authorize]
-    public async Task<IActionResult> SummaryStream([FromBody] SummaryParams summaryParams)
+    public Task<IActionResult> SummaryStream([FromBody] SummaryParams summaryParams)
     {
-        return new StreamedResult(async (outputStream, cancellationToken) =>
+        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
         {
             try
             {
@@ -152,16 +152,16 @@ public class ChatController : ControllerBase
             }
             finally
             {
-                outputStream.Close();
+                await outputStream.DisposeAsync();
             }
-        }, "text/event-stream");
+        }, "text/event-stream"));
     }
 
     [HttpPost("SceneChatStream")]
     [Authorize]
-    public async Task<IActionResult> SceneChatStream([FromBody] SceneChatParams sceneChatParams)
+    public Task<IActionResult> SceneChatStream([FromBody] SceneChatParams sceneChatParams)
     {
-        return new StreamedResult(async (outputStream, cancellationToken) =>
+        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
         {
             try
             {
@@ -169,8 +169,8 @@ public class ChatController : ControllerBase
             }
             finally
             {
-                outputStream.Close();
+                await outputStream.DisposeAsync();
             }
-        }, "text/event-stream");
+        }, "text/event-stream"));
     }
 }

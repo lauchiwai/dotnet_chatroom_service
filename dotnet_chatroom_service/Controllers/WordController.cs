@@ -106,11 +106,11 @@ public class WordController : ControllerBase
             return BadRequest(result);
     }
 
-    [HttpGet("GetNextReviewWord")]
+    [HttpGet("GetNextReviewWord/{wordId}")]
     [Authorize]
-    public async Task<IActionResult> GetNextReviewWord()
+    public async Task<IActionResult> GetNextReviewWord(int wordId)
     {
-        var result = await _wordService.GetNextReviewWord();
+        var result = await _wordService.GetNextReviewWord(wordId);
         if (result.IsSuccess)
             return Ok(result);
         else

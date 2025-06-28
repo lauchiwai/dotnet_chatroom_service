@@ -21,9 +21,10 @@ public class ArticleController : ControllerBase
 
     [HttpPost("FetchAiArticle")]
     [Authorize]
-    public async Task<IActionResult> FetchAiArticle([FromBody] FetchAiArticleParams fetchAiArticleParams)
+    [Authorize]
+    public Task<IActionResult> FetchAiArticle([FromBody] FetchAiArticleParams fetchAiArticleParams)
     {
-        return new StreamedResult(async (outputStream, cancellationToken) =>
+        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
         {
             try
             {
@@ -31,9 +32,9 @@ public class ArticleController : ControllerBase
             }
             finally
             {
-                outputStream.Close();
+                await outputStream.DisposeAsync(); 
             }
-        }, "text/event-stream");
+        }, "text/event-stream"));
     }
 
     [HttpPost("VectorizeArticle")]

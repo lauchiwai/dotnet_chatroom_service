@@ -9,6 +9,7 @@ using Common.ViewModels.Word;
 using Microsoft.EntityFrameworkCore;
 using Repositories.MyDbContext;
 using Services.Interfaces;
+using System.Linq.Expressions;
 
 namespace Services.Implementation;
 
@@ -149,7 +150,6 @@ public class WordService : IWordService
                     .ThenBy(uw => uw.NextReviewDate);
         }
     }
-
 
     public async Task<ResultDTO> GetWordById(int wordId)
     {
@@ -468,52 +468,150 @@ public class WordService : IWordService
         return result;
     }
 
-    public async Task<ResultDTO> GetNextReviewWord()
+    public async Task<ResultDTO> GetNextReviewWord(int wordId)
     {
         var result = new ResultDTO { IsSuccess = true };
         try
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
-            var currentTime = DateTime.UtcNow;
 
-            var nextWord = await _userWordsRepository.GetQueryable()
-                .Include(uw => uw.Word)
-                .Where(uw =>
-                    uw.UserId == userInfo.UserId &&
-                    uw.NextReviewDate <= currentTime)
-                .OrderBy(uw => uw.LastReviewed.HasValue) 
-                .ThenBy(uw => uw.NextReviewDate)        
+            var currentWord = await _userWordsRepository.GetQueryable()
+                .Where(uw => uw.UserId == userInfo.UserId && uw.WordId == wordId)
                 .Select(uw => new WordViewModel
                 {
                     UserWordId = uw.UserWordId,
                     WordId = uw.WordId,
-                    Word = uw.Word.Word,
+                    Word = uw.Word != null ? uw.Word.Word : null,
                     NextReviewDate = uw.NextReviewDate,
                     LastReviewed = uw.LastReviewed,
                     ReviewCount = uw.ReviewCount
                 })
                 .FirstOrDefaultAsync();
 
-            if (nextWord == null)
+            if (currentWord == null)
             {
-                nextWord = await _userWordsRepository.GetQueryable()
-                    .Include(uw => uw.Word)
-                    .Where(uw => uw.UserId == userInfo.UserId)
-                    .OrderBy(_ => Guid.NewGuid())  
+                result.IsSuccess = false;
+                result.Message = "Word not found";
+                return result;
+            }
+
+            WordViewModel? nextWord = null;
+
+            if (currentWord.LastReviewed == null)
+            {
+                var unreviewedList = await _userWordsRepository.GetQueryable()
+                    .Where(uw => uw.UserId == userInfo.UserId &&
+                                uw.Word != null &&
+                                uw.LastReviewed == null)
+                    .OrderBy(uw => uw.UserWordId)
                     .Select(uw => new WordViewModel
                     {
                         UserWordId = uw.UserWordId,
                         WordId = uw.WordId,
-                        Word = uw.Word.Word,
+                        Word = uw.Word != null ? uw.Word.Word : null,
+                        NextReviewDate = uw.NextReviewDate,
+                        LastReviewed = uw.LastReviewed,
+                        ReviewCount = uw.ReviewCount
+                    })
+                    .ToListAsync();
+
+                if (unreviewedList.Count > 0)
+                {
+                    var currentIndex = unreviewedList.FindIndex(w => w.WordId == wordId);
+
+                    if (currentIndex == unreviewedList.Count - 1)
+                    {
+                        nextWord = await _userWordsRepository.GetQueryable()
+                            .Where(uw => uw.UserId == userInfo.UserId &&
+                                        uw.Word != null &&
+                                        uw.LastReviewed != null)
+                            .OrderBy(uw => uw.NextReviewDate)
+                            .Select(uw => new WordViewModel
+                            {
+                                UserWordId = uw.UserWordId,
+                                WordId = uw.WordId,
+                                Word = uw.Word != null ? uw.Word.Word : null,
+                                NextReviewDate = uw.NextReviewDate,
+                                LastReviewed = uw.LastReviewed,
+                                ReviewCount = uw.ReviewCount
+                            })
+                            .FirstOrDefaultAsync();
+                    }
+                    else if (currentIndex >= 0)
+                    {
+                        nextWord = unreviewedList[currentIndex + 1];
+                    }
+                    else
+                    {
+                        nextWord = unreviewedList.FirstOrDefault();
+                    }
+                }
+            }
+            else
+            {
+                nextWord = await _userWordsRepository.GetQueryable()
+                    .Where(uw => uw.UserId == userInfo.UserId &&
+                                 uw.Word != null &&
+                                 uw.WordId != wordId &&
+                                 uw.NextReviewDate > currentWord.NextReviewDate)
+                    .OrderBy(uw => uw.NextReviewDate)
+                    .Select(uw => new WordViewModel
+                    {
+                        UserWordId = uw.UserWordId,
+                        WordId = uw.WordId,
+                        Word = uw.Word != null ? uw.Word.Word : null,
                         NextReviewDate = uw.NextReviewDate,
                         LastReviewed = uw.LastReviewed,
                         ReviewCount = uw.ReviewCount
                     })
                     .FirstOrDefaultAsync();
 
-                result.Message = nextWord != null
-                    ? "No review words. Showing random word"
-                    : "No words available";
+                if (nextWord == null)
+                {
+                    nextWord = await _userWordsRepository.GetQueryable()
+                        .Where(uw => uw.UserId == userInfo.UserId &&
+                                    uw.Word != null &&
+                                    uw.WordId != wordId)
+                        .OrderBy(uw => uw.NextReviewDate)
+                        .Select(uw => new WordViewModel
+                        {
+                            UserWordId = uw.UserWordId,
+                            WordId = uw.WordId,
+                            Word = uw.Word != null ? uw.Word.Word : null,
+                            NextReviewDate = uw.NextReviewDate,
+                            LastReviewed = uw.LastReviewed,
+                            ReviewCount = uw.ReviewCount
+                        })
+                        .FirstOrDefaultAsync();
+                }
+            }
+
+            if (nextWord == null)
+            {
+                nextWord = await _userWordsRepository.GetQueryable()
+                    .Where(uw => uw.UserId == userInfo.UserId &&
+                                 uw.Word != null &&
+                                 uw.WordId != wordId)
+                    .OrderBy(uw => uw.UserWordId)
+                    .Select(uw => new WordViewModel
+                    {
+                        UserWordId = uw.UserWordId,
+                        WordId = uw.WordId,
+                        Word = uw.Word != null ? uw.Word.Word : null,
+                        NextReviewDate = uw.NextReviewDate,
+                        LastReviewed = uw.LastReviewed,
+                        ReviewCount = uw.ReviewCount
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (nextWord != null)
+                {
+                    result.Message = "Showing fallback word";
+                }
+                else
+                {
+                    result.Message = "No words available";
+                }
             }
 
             result.Data = nextWord;
@@ -522,11 +620,10 @@ public class WordService : IWordService
         {
             result.Code = 500;
             result.IsSuccess = false;
-            result.Message = ex.Message;
+            result.Message = $"Database error: {ex.GetBaseException()?.Message ?? ex.Message}";
         }
         return result;
     }
-
 
     public async Task<ResultDTO> GetReviewWordCount()
     {

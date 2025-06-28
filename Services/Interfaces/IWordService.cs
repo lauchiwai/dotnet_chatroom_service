@@ -57,12 +57,11 @@ public interface IWordService
     /// <summary>
     /// 獲取下一個需要復習的單字
     /// </summary>
-    /// <returns></returns>
-    Task<ResultDTO> GetNextReviewWord();
+    /// <param name="wordId">單字id</param>
+    Task<ResultDTO> GetNextReviewWord(int wordId);
 
     /// <summary>
     /// 獲取需要復習的單字的數量
     /// </summary>
-    /// <returns></returns>
     Task<ResultDTO> GetReviewWordCount();
 }

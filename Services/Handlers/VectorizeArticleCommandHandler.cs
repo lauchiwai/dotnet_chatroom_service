@@ -107,7 +107,7 @@ public class VectorizeArticleCommandHandler : IRequestHandler<VectorizeArticleCo
             {
                 IsSuccess = false,
                 Code = 500,
-                Message = "Article processing error. Please try again later."
+                Message = ex.Message
             };
         }
     }
