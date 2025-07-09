@@ -73,9 +73,9 @@ public class WordController : ControllerBase
             return BadRequest(result);
     }
 
-    [HttpDelete("RemoveWordByText/{word}")]
+    [HttpDelete("RemoveWordByText")]
     [Authorize]
-    public async Task<IActionResult> RemoveWordByText(string word)
+    public async Task<IActionResult> RemoveWordByText([FromQuery] string word)
     {
         var result = await _wordService.RemoveWordByText(word);
         if (result.IsSuccess)
@@ -95,9 +95,9 @@ public class WordController : ControllerBase
             return BadRequest(result);
     }
 
-    [HttpGet("CheckUserWordExistsByText/{word}")]
+    [HttpGet("CheckUserWordExistsByText")]
     [Authorize]
-    public async Task<IActionResult> CheckUserWordExistsByText(string word)
+    public async Task<IActionResult> CheckUserWordExistsByText([FromQuery] string word)
     {
         var result = await _wordService.CheckUserWordExistsByText(word);
         if (result.IsSuccess)
