@@ -37,6 +37,14 @@ public partial class MyDbContext : DbContext
             entity.HasKey(e => e.ArticleID).HasName("PK__Article__9C6270C8092B52A3");
 
             entity.Property(e => e.ArticleTitle).HasMaxLength(50);
+            entity.Property(e => e.DeletedAt).HasColumnType("datetime");
+            entity.Property(e => e.IsDeleted)
+                 .HasDefaultValue(false)
+                 .HasComment("1:true, 0: false")
+                 .HasConversion(
+                    v => v ? 1 : 0,
+                    v => v == 1
+                 );
             entity.Property(e => e.UpdateTime).HasColumnType("datetime");
 
             entity.HasOne(d => d.Owner).WithMany(p => p.Article)
@@ -94,6 +102,14 @@ public partial class MyDbContext : DbContext
             entity.HasKey(e => e.SessionId).HasName("PK__Chat_Ses__C9F4927095D5C284");
 
             entity.Property(e => e.SessionName).HasMaxLength(50);
+            entity.Property(e => e.DeletedAt).HasColumnType("datetime");
+            entity.Property(e => e.IsDeleted)
+                 .HasDefaultValue(false)
+                 .HasComment("1:true, 0: false")
+                 .HasConversion(
+                    v => v ? 1 : 0,
+                    v => v == 1
+                 );
             entity.Property(e => e.UpdateTime).HasColumnType("datetime");
 
             entity.HasOne(d => d.User).WithMany(p => p.Chat_Session)
@@ -114,15 +130,15 @@ public partial class MyDbContext : DbContext
                 .HasMaxLength(30)
                 .IsUnicode(false);
             entity.Property(e => e.IsPublished)
-                .HasDefaultValue(false)
+                 .HasDefaultValue(false)
                  .HasComment("1:true, 0: false")
                  .HasConversion(
                     v => v ? 1 : 0,
                     v => v == 1
-                );
+                 );
             entity.Property(e => e.Payload)
-                .HasMaxLength(4000)
-                .IsUnicode(false);
+                 .HasMaxLength(4000)
+                 .IsUnicode(false);
         });
 
         modelBuilder.Entity<UserWords>(entity =>

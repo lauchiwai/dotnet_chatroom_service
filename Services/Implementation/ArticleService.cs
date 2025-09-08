@@ -208,7 +208,6 @@ public class ArticleService : IArticleService
         {
             var article = await _articleRepository.GetQueryable()
                 .Include(a => a.Article_Chat_Session)
-                .Include(a => a.Article_User)
                 .FirstOrDefaultAsync(a => a.ArticleID == articleId);
 
             if (article == null)
@@ -219,16 +218,10 @@ public class ArticleService : IArticleService
                 return result;
             }
 
+            article.IsDeleted = true;
             var sessionIds = article.Article_Chat_Session?
                 .Select(acs => acs.SessionID)
                 .ToList() ?? new List<int>();
-
-            if (article.Article_User?.Any() == true)
-            {
-                _context.RemoveRange(article.Article_User);
-            }
-
-            _articleRepository.Delete(article);
 
             _outboxMessageRepository.Add(new OutboxMessage
             {
@@ -236,9 +229,7 @@ public class ArticleService : IArticleService
                 EventType = "ArticleDeleted",
                 Payload = JsonSerializer.Serialize(new
                 {
-                    ArticleId = articleId,
-                    SessionIds = sessionIds,
-                    CollectionName = "articles"
+                    ArticleId = articleId
                 }),
                 CreatedTime = DateTime.UtcNow,
                 IsPublished = false,
@@ -277,7 +268,8 @@ public class ArticleService : IArticleService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var article = await _articleRepository.GetQueryable()
               .Where(a => a.ArticleID == articleId
-                     && a.Article_User.Any(au => au.UserId == userInfo.UserId))
+                     &&  !a.IsDeleted
+                     &&  a.Article_User.Any(au => au.UserId == userInfo.UserId))
               .Select(a => new ArticleViewModel()
               {
                   ArticleId = a.ArticleID,
@@ -322,7 +314,7 @@ public class ArticleService : IArticleService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
 
             var baseQuery = _articleRepository.GetQueryable()
-                .Where(a => a.Article_User.Any(au => au.UserId == userInfo.UserId));
+                .Where(a => a.Article_User.Any(au => au.UserId == userInfo.UserId) && !a.IsDeleted);
 
             if (!string.IsNullOrWhiteSpace(safeParams.Keyword))
             {

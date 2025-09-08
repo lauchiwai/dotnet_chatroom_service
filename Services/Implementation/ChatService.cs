@@ -134,7 +134,7 @@ public class ChatService : IChatService
         {
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var chatSessionList = await _chatSessionRepository.GetQueryable()
-                .Where(a => a.UserId == userInfo.UserId)
+                .Where(a => a.UserId == userInfo.UserId && !a.IsDeleted)
                 .OrderByDescending(x => x.UpdateTime)
                 .Select(a => new ChatSessionViewModel()
                 {
@@ -168,6 +168,7 @@ public class ChatService : IChatService
             var orphanedSessions = await _chatSessionRepository.GetQueryable()
                 .Where(cs =>
                     cs.UserId == userInfo.UserId &&
+                    !cs.IsDeleted &&
                     !associatedSessionIds.Contains(cs.SessionId))
                 .OrderByDescending(cs => cs.UpdateTime)
                 .Select(cs => new ChatSessionViewModel
@@ -196,7 +197,7 @@ public class ChatService : IChatService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
 
             var chatSessionList = await _chatSessionRepository.GetQueryable()
-                .Where(cs => cs.UserId == userInfo.UserId)
+                .Where(cs => cs.UserId == userInfo.UserId && !cs.IsDeleted)
                 .Join(
                     _context.Article_Chat_Session,
                     cs => cs.SessionId,
@@ -231,7 +232,7 @@ public class ChatService : IChatService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
 
             var chatSession = await _chatSessionRepository.GetQueryable()
-               .FirstOrDefaultAsync(a => a.SessionId == sessionId);
+               .FirstOrDefaultAsync(a => a.SessionId == sessionId && !a.IsDeleted);
 
             if (chatSession == null)
             {
@@ -278,18 +279,8 @@ public class ChatService : IChatService
     {
         var result = new ResultDTO() { IsSuccess = true };
         using var transaction = await _context.Database.BeginTransactionAsync();
-
         try
         {
-            var articleSessions = await _context.Article_Chat_Session
-                .Where(acs => acs.SessionID == sessionId)
-                .ToListAsync();
-
-            if (articleSessions.Any())
-            {
-                _context.Article_Chat_Session.RemoveRange(articleSessions);
-            }
-
             var chatSession = await _context.ChatSession.FindAsync(sessionId);
             if (chatSession == null)
             {
@@ -299,7 +290,7 @@ public class ChatService : IChatService
                 return result;
             }
 
-            _context.ChatSession.Remove(chatSession);
+            chatSession.IsDeleted = true;
 
             _outboxMessageRepository.Add(new OutboxMessage
             {

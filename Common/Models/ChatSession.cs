@@ -31,6 +31,17 @@ public partial class ChatSession
     [Column(TypeName = "datetime")]
     public DateTime UpdateTime { get; set; }
 
+    /// <summary>
+    /// 1:true, 0: false
+    /// 是否刪除
+    /// </summary>
+    public bool IsDeleted { get; set; }
+
+    /// <summary>
+    /// 刪除時間
+    /// </summary>
+    public DateTime? DeletedAt { get; set; }
+
     public virtual Article_Chat_Session? Article_Chat_Session { get; set; }
 
     public virtual Authenticate User { get; set; } = null!;
