@@ -9,6 +9,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
     ports:
       - "11115:8080"
+    restart: always
     networks:
       - rbmq-network
       - chat_service_network
