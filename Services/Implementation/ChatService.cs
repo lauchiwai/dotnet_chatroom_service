@@ -154,41 +154,6 @@ public class ChatService : IChatService
         return result;
     }
 
-    public async Task<ResultDTO> GetSceneChatSessionList()
-    {
-        var result = new ResultDTO { IsSuccess = true };
-        try
-        {
-            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
-
-            var associatedSessionIds = _context.Article_Chat_Session
-                .Select(acs => acs.SessionID)
-                .Distinct();
-
-            var orphanedSessions = await _chatSessionRepository.GetQueryable()
-                .Where(cs =>
-                    cs.UserId == userInfo.UserId &&
-                    !cs.IsDeleted &&
-                    !associatedSessionIds.Contains(cs.SessionId))
-                .OrderByDescending(cs => cs.UpdateTime)
-                .Select(cs => new ChatSessionViewModel
-                {
-                    SessionId = cs.SessionId,
-                    SessionName = cs.SessionName ?? "Unnamed Session"
-                })
-                .ToListAsync();
-
-            result.Data = orphanedSessions;
-        }
-        catch (Exception ex)
-        {
-            result.IsSuccess = false;
-            result.Code = 500;
-            result.Message = $"Internal error: {ex.Message}";
-        }
-        return result;
-    }
-
     public async Task<ResultDTO> GetRagChatSessionListByArticleId(int articleId)
     {
         var result = new ResultDTO() { IsSuccess = true };
@@ -407,38 +372,6 @@ public class ChatService : IChatService
 
             await _streamClient.PostStreamAsync(
                 "/Chat/summary_stream",
-                summaryHttpRequest,
-                outputStream,
-                cancellationToken
-            );
-        }
-        catch (Exception ex)
-        {
-            await SendErrorEvent(outputStream, ex.Message);
-        }
-    }
-
-    public async Task SceneChatStream(Stream outputStream, SceneChatParams sceneChatParams, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var validationResult = await ValidateChatPermission(sceneChatParams.ChatSessionId);
-            if (!validationResult.IsSuccess)
-            {
-                await SendValidationError(outputStream, validationResult);
-                return;
-            }
-
-            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
-            var summaryHttpRequest = new SceneChatHttpRequest()
-            {
-                UserId = userInfo.UserId,
-                ChatSessionId = sceneChatParams.ChatSessionId,
-                Message = sceneChatParams.Message,
-            };
-
-            await _streamClient.PostStreamAsync(
-                "/Chat/scene_chat_stream",
                 summaryHttpRequest,
                 outputStream,
                 cancellationToken

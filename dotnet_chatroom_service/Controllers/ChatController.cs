@@ -53,18 +53,6 @@ public class ChatController : ControllerBase
             return BadRequest(result);
     }
 
-    [HttpGet("GetSceneChatSessionList")]
-    [Authorize]
-    public async Task<IActionResult> GetSceneChatSessionList()
-    {
-        var result = await _chatService.GetSceneChatSessionList();
-
-        if (result.IsSuccess)
-            return Ok(result);
-        else
-            return BadRequest(result);
-    }
-
     [HttpGet("GetRagChatSessionListByArticleId/{articleId}")]
     [Authorize]
     public async Task<IActionResult> GetRagChatSessionListByArticleId(int articleId)
@@ -149,23 +137,6 @@ public class ChatController : ControllerBase
             try
             {
                 await _chatService.SummaryStream(outputStream, summaryParams, cancellationToken);
-            }
-            finally
-            {
-                await outputStream.DisposeAsync();
-            }
-        }, "text/event-stream"));
-    }
-
-    [HttpPost("SceneChatStream")]
-    [Authorize]
-    public Task<IActionResult> SceneChatStream([FromBody] SceneChatParams sceneChatParams)
-    {
-        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
-        {
-            try
-            {
-                await _chatService.SceneChatStream(outputStream, sceneChatParams, cancellationToken);
             }
             finally
             {

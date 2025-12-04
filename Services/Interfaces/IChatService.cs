@@ -26,12 +26,6 @@ public interface IChatService
     public Task<ResultDTO> GetChatSessionList();
 
     /// <summary>
-    /// 獲取該用戶的所以場景對話
-    /// </summary>
-    /// <returns></returns>
-    public Task<ResultDTO> GetSceneChatSessionList();
-
-    /// <summary>
     /// 獲取該用戶的文章 RAG 對話
     /// </summary>
     /// <param name="articleId"></param>
@@ -83,13 +77,4 @@ public interface IChatService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task SummaryStream(Stream outputStream, SummaryParams summaryParams, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// sse 場景對話
-    /// </summary>
-    /// <param name="outputStream"></param>
-    /// <param name="sceneChatParams"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    public Task SceneChatStream(Stream outputStream, SceneChatParams sceneChatParams, CancellationToken cancellationToken);
 }
