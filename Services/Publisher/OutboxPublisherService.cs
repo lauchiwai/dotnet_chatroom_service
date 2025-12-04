@@ -7,7 +7,6 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Repositories.MyDbContext;
 using System.Text;
-using System.Text.Json;
 
 namespace Services.Publish;
 public class OutboxPublisherService : BackgroundService
@@ -37,7 +36,7 @@ public class OutboxPublisherService : BackgroundService
                     QueueName: "chat_deleted_queue",
                     DlExchange: "chat_dlx",
                     DlRoutingKey: "chat.dead",
-                    DlQueueName: "chat_dlx_queue"  
+                    DlQueueName: "chat_dlx_queue"
                 );
             case "ArticleDeleted":
                 return (
@@ -46,7 +45,7 @@ public class OutboxPublisherService : BackgroundService
                     QueueName: "article_deleted_queue",
                     DlExchange: "article_dlx",
                     DlRoutingKey: "article.dead",
-                    DlQueueName: "article_dlx_queue"  
+                    DlQueueName: "article_dlx_queue"
                 );
             default:
                 throw new NotSupportedException($"Unsupported event type: {eventType}");
@@ -218,73 +217,7 @@ public class OutboxPublisherService : BackgroundService
                 {
                     var body = ea.Body.ToArray();
                     var payload = Encoding.UTF8.GetString(body);
-                    _logger.LogInformation("死信負載: {Payload}", payload);
 
-                    using var scope = _scopeFactory.CreateScope();
-                    var context = scope.ServiceProvider.GetRequiredService<MyDbContext>();
-
-                    using var jsonDocument = JsonDocument.Parse(payload);
-                    var root = jsonDocument.RootElement;
-
-                    if (eventType == "ArticleDeleted")
-                    {
-                        _logger.LogInformation("正在處理 ArticleDeleted 死信");
-
-                        // 從 JSON 中提取 ArticleId
-                        if (root.TryGetProperty("ArticleId", out var articleIdElement) && articleIdElement.TryGetInt32(out var articleId))
-                        {
-                            _logger.LogInformation("提取到的 ArticleId: {ArticleId}", articleId);
-
-                            var article = await context.Article.FindAsync(articleId);
-                            if (article != null)
-                            {
-                                _logger.LogInformation("找到文章 {ArticleId}，正在回滾刪除操作", articleId);
-
-                                article.IsDeleted = false; // 回滾刪除操作：將 IsDeleted 設回 false
-                                await context.SaveChangesAsync(stoppingToken);
-                                _logger.LogInformation("已成功回滾文章刪除操作，ArticleId: {ArticleId}", articleId);
-                            }
-                            else
-                            {
-                                _logger.LogWarning("未找到文章，ArticleId: {ArticleId}", articleId);
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogError("ArticleDeleted 事件的負載無效: {Payload}", payload);
-                        }
-                    }
-                    else if (eventType == "ChatSessionDeleted")
-                    {
-                        _logger.LogInformation("正在處理 ChatSessionDeleted 死信");
-
-                        // 從 JSON 中提取 SessionId
-                        if (root.TryGetProperty("SessionId", out var sessionIdElement) && sessionIdElement.TryGetInt32(out var sessionId))
-                        {
-                            _logger.LogInformation("提取到的 SessionId: {SessionId}", sessionId);
-
-                            var chatSession = await context.ChatSession.FindAsync(sessionId);
-                            if (chatSession != null)
-                            {
-                                _logger.LogInformation("找到聊天會話 {SessionId}，正在回滾刪除操作", sessionId);
-
-                                chatSession.IsDeleted = false; // 回滾刪除操作：將 IsDeleted 設回 false
-                                await context.SaveChangesAsync(stoppingToken);
-                                _logger.LogInformation("已成功回滾聊天會話刪除操作，SessionId: {SessionId}", sessionId);
-                            }
-                            else
-                            {
-                                _logger.LogWarning("未找到聊天會話，SessionId: {SessionId}", sessionId);
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogError("ChatSessionDeleted 事件的負載無效: {Payload}", payload);
-                        }
-                    }
-
-                    channel.BasicAck(ea.DeliveryTag, false); // 確認訊息處理成功，從隊列中移除
-                    _logger.LogInformation("已確認死信訊息");
                 }
                 catch (Exception ex)
                 {
