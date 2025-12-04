@@ -5,15 +5,6 @@ namespace Services.Interfaces;
 public interface IEnglishAssistantService
 {
     /// <summary>
-    /// AI 單子提示
-    /// </summary>
-    /// <param name="outputStream"></param>
-    /// <param name="param"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    public Task WordTips(Stream outputStream, WordAssistanParams param, CancellationToken cancellationToken);
-
-    /// <summary>
     /// AI 單字翻譯
     /// </summary>
     /// <param name="outputStream"></param>

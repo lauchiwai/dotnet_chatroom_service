@@ -17,23 +17,6 @@ public class EnglishAssistantController : ControllerBase
         _englishAssistantService = englishAssistantService;
     }
 
-    [HttpPost("WordTips")]
-    [Authorize]
-    public Task<IActionResult> WordTips([FromBody] WordAssistanParams fetchAiArticleParams)
-    {
-        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
-        {
-            try
-            {
-                await _englishAssistantService.WordTips(outputStream, fetchAiArticleParams, cancellationToken);
-            }
-            finally
-            {
-                await outputStream.DisposeAsync();
-            }
-        }, "text/event-stream"));
-    }
-
     [HttpPost("WordTranslate")]
     [Authorize]
     public Task<IActionResult> WordTranslate([FromBody] WordAssistanParams fetchAiArticleParams)
