@@ -83,13 +83,4 @@ public interface IChatService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task SummaryStream(Stream outputStream, SummaryParams summaryParams, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// sse 場景對話
-    /// </summary>
-    /// <param name="outputStream"></param>
-    /// <param name="sceneChatParams"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    public Task SceneChatStream(Stream outputStream, SceneChatParams sceneChatParams, CancellationToken cancellationToken);
 }

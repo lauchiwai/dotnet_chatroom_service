@@ -418,38 +418,6 @@ public class ChatService : IChatService
         }
     }
 
-    public async Task SceneChatStream(Stream outputStream, SceneChatParams sceneChatParams, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var validationResult = await ValidateChatPermission(sceneChatParams.ChatSessionId);
-            if (!validationResult.IsSuccess)
-            {
-                await SendValidationError(outputStream, validationResult);
-                return;
-            }
-
-            var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
-            var summaryHttpRequest = new SceneChatHttpRequest()
-            {
-                UserId = userInfo.UserId,
-                ChatSessionId = sceneChatParams.ChatSessionId,
-                Message = sceneChatParams.Message,
-            };
-
-            await _streamClient.PostStreamAsync(
-                "/Chat/scene_chat_stream",
-                summaryHttpRequest,
-                outputStream,
-                cancellationToken
-            );
-        }
-        catch (Exception ex)
-        {
-            await SendErrorEvent(outputStream, ex.Message);
-        }
-    }
-
     private async Task SendValidationError(Stream stream, ResultDTO result)
     {
         var errorEvent = new

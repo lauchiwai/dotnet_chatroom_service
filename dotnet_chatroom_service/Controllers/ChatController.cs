@@ -156,21 +156,4 @@ public class ChatController : ControllerBase
             }
         }, "text/event-stream"));
     }
-
-    [HttpPost("SceneChatStream")]
-    [Authorize]
-    public Task<IActionResult> SceneChatStream([FromBody] SceneChatParams sceneChatParams)
-    {
-        return Task.FromResult<IActionResult>(new StreamedResult(async (outputStream, cancellationToken) =>
-        {
-            try
-            {
-                await _chatService.SceneChatStream(outputStream, sceneChatParams, cancellationToken);
-            }
-            finally
-            {
-                await outputStream.DisposeAsync();
-            }
-        }, "text/event-stream"));
-    }
 }
