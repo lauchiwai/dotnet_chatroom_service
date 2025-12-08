@@ -1,6 +1,7 @@
 ﻿using Common.Dto;
 using Common.Params.Article;
 using Common.Params.Search;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Services.Interfaces;
 
@@ -14,7 +15,7 @@ public interface IArticleService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task SteamFeatchAiArticle(Stream outputStream, FetchAiArticleParams fetchAiArticleParams, CancellationToken cancellationToken);
-    
+
     /// <summary>
     /// 創建文章資料
     /// </summary>
@@ -23,11 +24,19 @@ public interface IArticleService
     public Task<ResultDTO> GenerateArticle(GenerateArticleParams generateArticleParams);
 
     /// <summary>
-    /// 刪除文章資料
+    /// 刪除文章資料（內部管理事務）
     /// </summary>
     /// <param name="articleId"></param>
     /// <returns></returns>
     public Task<ResultDTO> DeleteArticle(int articleId);
+
+    /// <summary>
+    /// 刪除文章資料（支援外部事務）
+    /// </summary>
+    /// <param name="articleId"></param>
+    /// <param name="transaction"></param>
+    /// <returns></returns>
+    public Task<ResultDTO> DeleteArticleWithTransaction(int articleId, IDbContextTransaction transaction = null);
 
     /// <summary>
     /// 獲取 刪除文章的資料

@@ -7,6 +7,7 @@ using Common.Models;
 using Common.Params.Chat;
 using Common.ViewModels.Chat;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;
@@ -242,21 +243,42 @@ public class ChatService : IChatService
 
     public async Task<ResultDTO> DeleteChatData(int sessionId)
     {
+        // 調用帶事務的方法，但不傳入事務（內部管理）
+        return await DeleteChatDataWithTransaction(sessionId, null);
+    }
+
+    public async Task<ResultDTO> DeleteChatDataWithTransaction(int sessionId, IDbContextTransaction transaction = null)
+    {
         var result = new ResultDTO() { IsSuccess = true };
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        IDbContextTransaction localTransaction = null;
+        bool isLocalTransaction = false;
+
         try
         {
+            // 如果外部沒有提供事務，則創建本地事務
+            if (transaction == null)
+            {
+                localTransaction = await _context.Database.BeginTransactionAsync();
+                transaction = localTransaction;
+                isLocalTransaction = true;
+            }
+
             var chatSession = await _context.ChatSession.FindAsync(sessionId);
             if (chatSession == null)
             {
                 result.IsSuccess = false;
                 result.Code = 404;
                 result.Message = "會話ID不存在";
+
+                if (isLocalTransaction)
+                {
+                    await transaction.RollbackAsync();
+                    await transaction.DisposeAsync();
+                }
                 return result;
             }
 
             chatSession.IsDeleted = true;
-
             _outboxMessageRepository.Add(new OutboxMessage
             {
                 Id = Guid.NewGuid().ToString(),
@@ -272,26 +294,43 @@ public class ChatService : IChatService
             });
 
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+
+            if (isLocalTransaction)
+            {
+                await transaction.CommitAsync();
+            }
         }
         catch (Exception ex)
         {
             result.IsSuccess = false;
             result.Code = 500;
             result.Message = $"刪除失敗: {ex.Message}";
-            await transaction.RollbackAsync();
+
+            if (isLocalTransaction && transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
         }
+        finally
+        {
+            if (isLocalTransaction && localTransaction != null)
+            {
+                await localTransaction.DisposeAsync();
+            }
+        }
+
         return result;
     }
 
     public async Task<ResultDTO> RefreshChatSessionTime(int sessionId)
     {
         var result = new ResultDTO() { IsSuccess = true };
+
         try
         {
             var chatSession = await _chatSessionRepository.GetQueryable()
-               .Where(a => a.SessionId == sessionId)
-               .FirstOrDefaultAsync();
+                .Where(a => a.SessionId == sessionId)
+                .FirstOrDefaultAsync();
 
             if (chatSession == null)
             {
@@ -301,7 +340,6 @@ public class ChatService : IChatService
             }
 
             chatSession.UpdateTime = DateTime.UtcNow;
-
             _chatSessionRepository.Update(chatSession);
             await _chatSessionRepository.SaveChangesAsync();
         }
@@ -368,7 +406,6 @@ public class ChatService : IChatService
                 ChatSessionId = summaryParams.ChatSessionId,
                 CollectionName = summaryParams.CollectionName,
             };
-
 
             await _streamClient.PostStreamAsync(
                 "/Chat/summary_stream",

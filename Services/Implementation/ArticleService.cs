@@ -9,6 +9,7 @@ using Common.ViewModels.Article;
 using Common.ViewModels.Search;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Repositories.HttpClients;
 using Repositories.MyDbContext;
 using Services.Interfaces;
@@ -70,8 +71,8 @@ public class ArticleService : IArticleService
             var newArticleUser = new Article_User
             {
                 UserId = userInfo.UserId,
-                ArticleId = newArticle.ArticleID, 
-                Progress = 0 
+                ArticleId = newArticle.ArticleID,
+                Progress = 0
             };
 
             await _articleUserRepository.AddAsync(newArticleUser);
@@ -118,7 +119,7 @@ public class ArticleService : IArticleService
                 };
                 await _articleUserRepository.AddAsync(newArticleUser);
             }
-            
+
             await _articleUserRepository.SaveChangesAsync();
         }
         catch (Exception ex)
@@ -145,14 +146,16 @@ public class ArticleService : IArticleService
                      au.UserId == userInfo.UserId
                  );
 
-            if (association == null) {
-                result.Data =  new ArticleReadingProgressViewmodel
+            if (association == null)
+            {
+                result.Data = new ArticleReadingProgressViewmodel
                 {
                     ArticleId = articleId,
                     Progress = 0
                 };
 
-            } else
+            }
+            else
             {
                 result.Data = new ArticleReadingProgressViewmodel
                 {
@@ -197,15 +200,31 @@ public class ArticleService : IArticleService
             result.Message = $"刪除請求失敗: {ex.Message}";
         }
 
-        return result; 
+        return result;
     }
 
     public async Task<ResultDTO> DeleteArticle(int articleId)
     {
+        // 調用帶事務的方法，但不傳入事務（內部管理）
+        return await DeleteArticleWithTransaction(articleId, null);
+    }
+
+    public async Task<ResultDTO> DeleteArticleWithTransaction(int articleId, IDbContextTransaction transaction = null)
+    {
         var result = new ResultDTO() { IsSuccess = true };
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        IDbContextTransaction localTransaction = null;
+        bool isLocalTransaction = false;
+
         try
         {
+            // 如果外部沒有提供事務，則創建本地事務
+            if (transaction == null)
+            {
+                localTransaction = await _context.Database.BeginTransactionAsync();
+                transaction = localTransaction;
+                isLocalTransaction = true;
+            }
+
             var article = await _articleRepository.GetQueryable()
                 .Include(a => a.Article_Chat_Session)
                 .FirstOrDefaultAsync(a => a.ArticleID == articleId);
@@ -215,6 +234,12 @@ public class ArticleService : IArticleService
                 result.IsSuccess = false;
                 result.Code = 404;
                 result.Message = $"文章ID {articleId} 不存在";
+
+                if (isLocalTransaction)
+                {
+                    await transaction.RollbackAsync();
+                    await transaction.DisposeAsync();
+                }
                 return result;
             }
 
@@ -237,7 +262,11 @@ public class ArticleService : IArticleService
             });
 
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+
+            if (isLocalTransaction)
+            {
+                await transaction.CommitAsync();
+            }
 
             result.Data = sessionIds;
         }
@@ -246,8 +275,20 @@ public class ArticleService : IArticleService
             result.IsSuccess = false;
             result.Code = 500;
             result.Message = ex.Message;
-            await transaction.RollbackAsync();
+
+            if (isLocalTransaction && transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
         }
+        finally
+        {
+            if (isLocalTransaction && localTransaction != null)
+            {
+                await localTransaction.DisposeAsync();
+            }
+        }
+
         return result;
     }
 
@@ -268,8 +309,8 @@ public class ArticleService : IArticleService
             var userInfo = _jwtHelper.ParseToken<JwtUserInfo>();
             var article = await _articleRepository.GetQueryable()
               .Where(a => a.ArticleID == articleId
-                     &&  !a.IsDeleted
-                     &&  a.Article_User.Any(au => au.UserId == userInfo.UserId))
+                     && !a.IsDeleted
+                     && a.Article_User.Any(au => au.UserId == userInfo.UserId))
               .Select(a => new ArticleViewModel()
               {
                   ArticleId = a.ArticleID,

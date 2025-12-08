@@ -1,5 +1,6 @@
 ﻿using Common.Dto;
 using Common.Params.Chat;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Services.Interfaces;
 
@@ -54,19 +55,18 @@ public interface IChatService
     public Task<ResultDTO> RefreshChatSessionTime(int sessionId);
 
     /// <summary>
-    /// 刪除對話
+    /// 刪除對話（內部管理事務）
     /// </summary>
-    /// <param name="sessionId"></param>
-    /// <returns></returns>
     public Task<ResultDTO> DeleteChatData(int sessionId);
 
     /// <summary>
-    ///  sse 聊天功能
+    /// 刪除對話（支援外部事務）
     /// </summary>
-    /// <param name="outputStream"></param>
-    /// <param name="chatParams"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
+    public Task<ResultDTO> DeleteChatDataWithTransaction(int sessionId, IDbContextTransaction transaction = null);
+
+    /// <summary>
+    /// sse 聊天功能
+    /// </summary>
     public Task ChatStream(Stream outputStream, ChatParams chatParams, CancellationToken cancellationToken);
 
     /// <summary>
